@@ -401,14 +401,44 @@ main{position:relative !important}
 }
 
 
-/* v27 clean Home layout */
-#home > .section-title{margin-top:20px;margin-bottom:10px}
-#home .home-about-card{margin-bottom:4px}
+/* v28 Home desktop + mobile layout correction */
+#home .section-title{margin-top:18px;margin-bottom:10px}
+.home-top-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.65fr) minmax(320px,.85fr);
+  gap:14px;
+  align-items:start;
+}
+.home-top-grid .section-title{margin-top:0}
+.home-about-card{min-height:100%;display:flex;flex-direction:column;justify-content:center;padding:24px}
+.home-about-card h2{margin:4px 0 12px;max-width:760px}
+.home-trending-wrap .compact-list{height:100%}
+.home-quick-grid{grid-template-columns:repeat(4,1fr);margin-top:14px}
 #home .heatmap-card{margin-bottom:14px}
-#home .home-analytics-grid{margin-top:0}
-@media(max-width:700px){
-  #home > .section-title{margin-top:17px;margin-bottom:8px}
-  #home .home-about-card{padding:16px}
+#home .home-analytics-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:0;
+}
+@media (min-width:901px){
+  #home{max-width:1180px;margin:0 auto}
+  #home .market-strip{grid-template-columns:repeat(3,1fr)}
+  #home .quick-card{min-height:118px}
+}
+@media (max-width:900px){
+  .home-top-grid{grid-template-columns:1fr}
+  .home-about-card{min-height:auto}
+  .home-quick-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:700px){
+  #home .section-title{margin-top:16px;margin-bottom:8px}
+  .home-top-grid{display:block}
+  .home-trending-wrap{margin-top:16px}
+  .home-about-card{padding:16px}
+  .home-about-card h2{font-size:20px}
+  .home-quick-grid{grid-template-columns:1fr 1fr}
+  #home .home-analytics-grid{grid-template-columns:1fr}
 }
 
 </style>
@@ -441,20 +471,26 @@ main{position:relative !important}
     <div class="market-mini"><div class="label">WTI Oil</div><strong>$78.42</strong><span class="up">+2.31%</span></div>
   </div>
 
-  <div class="section-title"><h2>About MOVA Trading</h2></div>
-  <div class="card about-compact home-about-card">
-    <div class="brand-tagline" style="margin-bottom:14px">
-      <span class="tagline-smart">SMARTER TRADES.</span>
-      <span class="tagline-future">STRONGER FUTURE.</span>
+  <div class="home-top-grid">
+    <div class="home-about-wrap">
+      <div class="section-title"><h2>About MOVA Trading</h2></div>
+      <div class="card about-compact home-about-card">
+        <div class="brand-tagline" style="margin-bottom:14px">
+          <span class="tagline-smart">SMARTER TRADES.</span>
+          <span class="tagline-future">STRONGER FUTURE.</span>
+        </div>
+        <h2>Market intelligence built around movement, opportunity and growth.</h2>
+        <p class="muted">MOVA Trading brings together Nasdaq 100 companies, major commodities, market trends, research tools, actionable insights and portfolio tracking in one focused experience designed to support clearer, more informed investment decisions.</p>
+      </div>
     </div>
-    <h3>Market intelligence built around movement, opportunity and growth.</h3>
-    <p class="muted">MOVA Trading brings together Nasdaq 100 companies, major commodities, market trends, research tools, actionable insights and portfolio tracking in one focused experience.</p>
+
+    <div class="home-trending-wrap">
+      <div class="section-title"><h2>Trending Now</h2><button class="watch-btn" onclick="showPage('pulse',document.querySelector('[data-page=pulse]'))">View all</button></div>
+      <div class="card compact-list" id="homeTrending"></div>
+    </div>
   </div>
 
-  <div class="section-title"><h2>Trending Now</h2><button class="watch-btn" onclick="showPage('pulse',document.querySelector('[data-page=pulse]'))">View all</button></div>
-  <div class="card compact-list" id="homeTrending"></div>
-
-  <div class="quick-grid">
+  <div class="quick-grid home-quick-grid">
     <button class="quick-card hot-card" onclick="showPage('pulse',document.querySelector('[data-page=pulse]')); setTimeout(()=>{const b=document.querySelector('[data-pulse-panel=pulseHotNot]'); if(b)b.click();},50)">
       <div class="quick-icon">🔥</div><div><strong>Hot or Not</strong><span>What looks hot, what doesn’t and when to sell.</span></div>
     </button>
