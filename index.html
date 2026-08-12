@@ -587,8 +587,8 @@ main > .page > :first-child{margin-top:0 !important}
 </div>
 <div class="market-strip">
 <div class="market-mini"><div class="label">Nasdaq 100</div><strong>18,236.62</strong><span class="up">+1.42%</span></div>
-<div class="market-mini"><div class="label">Gold</div><strong>$2,347.21</strong><span class="up">+0.89%</span></div>
-<div class="market-mini"><div class="label">WTI Oil</div><strong>$78.42</strong><span class="up">+2.31%</span></div>
+<div class="market-mini"><div class="label">Gold</div><strong>£2,347.21</strong><span class="up">+0.89%</span></div>
+<div class="market-mini"><div class="label">WTI Oil</div><strong>£78.42</strong><span class="up">+2.31%</span></div>
 </div>
 <div class="home-top-grid">
 <div class="home-about-wrap">
@@ -735,7 +735,7 @@ main > .page > :first-child{margin-top:0 !important}
 <section class="page" id="portfolio">
 <div class="section-title"><h2>My Portfolio</h2><button class="btn btn-soft" onclick="document.getElementById('addForm').scrollIntoView({behavior:'smooth'})">+ Add Investment</button></div>
 <div class="grid grid-2">
-<div class="card"><div class="label">Total value</div><div class="balance">$24,562.18</div><div class="gain">+$2,348.21 (+10.58%)</div><div class="spark"><svg preserveaspectratio="none" viewbox="0 0 600 180"><polyline fill="none" points="0,150 60,142 120,125 170,135 230,105 285,111 340,82 400,90 460,58 520,65 600,22" stroke="#79ef31" stroke-width="5"></polyline></svg></div></div>
+<div class="card"><div class="label">Total value</div><div class="balance">£24,562.18</div><div class="gain">+£2,348.21 (+10.58%)</div><div class="spark"><svg preserveaspectratio="none" viewbox="0 0 600 180"><polyline fill="none" points="0,150 60,142 120,125 170,135 230,105 285,111 340,82 400,90 460,58 520,65 600,22" stroke="#79ef31" stroke-width="5"></polyline></svg></div></div>
 <div class="card portfolio-allocation-card">
 <div class="section-title" style="margin-top:0">
 <h3>Allocation</h3>
@@ -769,15 +769,15 @@ main > .page > :first-child{margin-top:0 !important}
 <div class="section-title wallet-title"><h2>Wallet</h2><span class="muted">Funds &amp; cash balance</span></div>
 <div class="card wallet-balance-card">
 <div class="label">Available Funds</div>
-<div class="balance" id="walletBalance">$8,430.21</div>
+<div class="balance" id="walletBalance">£8,430.21</div>
 <div class="muted">Available to invest or withdraw</div>
 <div class="wallet-overview-layout" style="margin-top:18px">
 <div class="donut wallet-donut">
 <div class="donut-center"><strong id="walletDepositShare">91%</strong><span>Deposited</span></div>
 </div>
 <div class="allocation-legend">
-<div><i class="legend-dot deposit-dot"></i><span>Deposited</span><strong id="walletDeposited">$10,000.00</strong></div>
-<div><i class="legend-dot withdraw-dot"></i><span>Withdrawn</span><strong id="walletWithdrawn">$1,000.00</strong></div>
+<div><i class="legend-dot deposit-dot"></i><span>Deposited</span><strong id="walletDeposited">£10,000.00</strong></div>
+<div><i class="legend-dot withdraw-dot"></i><span>Withdrawn</span><strong id="walletWithdrawn">£1,000.00</strong></div>
 </div>
 </div>
 </div>
@@ -868,13 +868,13 @@ let holdings=[
  {ticker:"USOIL",qty:10,avg:70,current:78.42}
 ];
 
-function money(n){return "$"+Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+function money(n){return "£"+Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
 function row(a,watch=true){
   const cls=a.change>=0?"up":"down";
   const sign=a.change>=0?"+":"";
-  return `<div class="asset-row"><div><div class="ticker">${a.name}</div><div class="muted">${a.ticker}</div></div>
-    <div>${money(a.price)}</div><div class="${cls}">${sign}${a.change.toFixed(2)}%</div>
-    <div class="hide-mobile">${watch?`<button class="watch-btn ${watchlist.has(a.ticker)?"on":""}" onclick="toggleWatch('${a.ticker}')">${watchlist.has(a.ticker)?"Watching":"+ Watch"}</button>`:""}</div></div>`;
+  return `<div class="asset-row"><div><div class="ticker">£{a.name}</div><div class="muted">£{a.ticker}</div></div>
+    <div>£{money(a.price)}</div><div class="£{cls}">£{sign}£{a.change.toFixed(2)}%</div>
+    <div class="hide-mobile">£{watch?`<button class="watch-btn £{watchlist.has(a.ticker)?"on":""}" onclick="toggleWatch('£{a.ticker}')">£{watchlist.has(a.ticker)?"Watching":"+ Watch"}</button>`:""}</div></div>`;
 }
 
 
@@ -897,12 +897,12 @@ function renderPulse(){
     const score=pulseScore(a,i), momentum=Math.min(98,score+4), volume=Math.min(96,55+i*7+Math.round(Math.abs(a.change)*4)), volatility=Math.min(94,48+Math.round(Math.abs(a.change)*8));
     const status=score>=82?"STRONG PULSE ↑":score>=70?"BUILDING ↑":"ACTIVE";
     return `<div class="pulse-asset">
-      <div class="pulse-top"><div><div class="label">${a.symbol}</div><h3 style="margin:3px 0">${a.name}</h3><div class="${a.change>=0?'up':'down'}">${a.change>=0?'+':''}${a.change.toFixed(2)}%</div><div class="pulse-status">${status}</div></div>
-      <div class="pulse-score" style="--score:${score}%">${score}</div></div>
+      <div class="pulse-top"><div><div class="label">£{a.symbol}</div><h3 style="margin:3px 0">£{a.name}</h3><div class="£{a.change>=0?'up':'down'}">£{a.change>=0?'+':''}£{a.change.toFixed(2)}%</div><div class="pulse-status">£{status}</div></div>
+      <div class="pulse-score" style="--score:£{score}%">£{score}</div></div>
       <div class="signal-bars">
-       ${[["Momentum",momentum],["Rel. volume",volume],["Volatility",volatility]].map(s=>`<div class="signal-line"><span>${s[0]}</span><div class="signal-track"><div class="signal-fill" style="width:${s[1]}%"></div></div><b>${s[1]}</b></div>`).join("")}
+       £{[["Momentum",momentum],["Rel. volume",volume],["Volatility",volatility]].map(s=>`<div class="signal-line"><span>£{s[0]}</span><div class="signal-track"><div class="signal-fill" style="width:£{s[1]}%"></div></div><b>£{s[1]}</b></div>`).join("")}
       </div>
-      <div class="pulse-why"><b style="color:white">Why it’s moving:</b> ${Math.abs(a.change)>2?"Price movement is materially stronger than the wider watchlist, with elevated momentum.":"Movement and activity are building relative to the recent market snapshot."}</div>
+      <div class="pulse-why"><b style="color:white">Why it’s moving:</b> £{Math.abs(a.change)>2?"Price movement is materially stronger than the wider watchlist, with elevated momentum.":"Movement and activity are building relative to the recent market snapshot."}</div>
     </div>`;
   }).join("");
 }
@@ -920,7 +920,7 @@ function renderRadar(){
     "Early change in movement detected; worth monitoring.",
     "Earlier momentum is easing and activity is returning toward normal."
    ][i];
-   return `<div class="radar-item"><div><div class="label">${a.symbol}</div><strong>${a.name}</strong><br><span class="radar-badge">${stages[i]}</span><div class="radar-reason">${reason}</div></div><div class="radar-strength"><span>Radar</span><strong>${strength}</strong><span>/100</span></div></div>`;
+   return `<div class="radar-item"><div><div class="label">£{a.symbol}</div><strong>£{a.name}</strong><br><span class="radar-badge">£{stages[i]}</span><div class="radar-reason">£{reason}</div></div><div class="radar-strength"><span>Radar</span><strong>£{strength}</strong><span>/100</span></div></div>`;
  }).join("");
 }
 
@@ -940,7 +940,7 @@ const rangeSeries={
   }
 };
 function activateRange(group,btn){
-  document.querySelectorAll(`[data-range-group="${group}"] button`).forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(`[data-range-group="£{group}"] button`).forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
 }
 function setPortfolioRange(range,btn){
@@ -974,11 +974,11 @@ function renderWallet(){
   const totalFlow=walletState.deposited+walletState.withdrawn;
   const depPct=totalFlow?Math.round(walletState.deposited/totalFlow*100):0;
   const share=document.getElementById("walletDepositShare"); if(share) share.textContent=depPct+"%";
-  const wd=document.querySelector(".wallet-donut"); if(wd) wd.style.background=`conic-gradient(#2EA8FF 0 ${depPct}%,#ff8a55 ${depPct}% 100%)`;
+  const wd=document.querySelector(".wallet-donut"); if(wd) wd.style.background=`conic-gradient(#2EA8FF 0 £{depPct}%,#ff8a55 £{depPct}% 100%)`;
   document.getElementById("walletActivity").innerHTML=walletState.activity.map(x=>`
     <div class="wallet-entry">
-      <div><strong>${x.type}</strong><div class="muted">${x.date}</div></div>
-      <div class="${x.amount>=0?'up':'down'}">${x.amount>=0?'+':'-'}${money(Math.abs(x.amount))}</div>
+      <div><strong>£{x.type}</strong><div class="muted">£{x.date}</div></div>
+      <div class="£{x.amount>=0?'up':'down'}">£{x.amount>=0?'+':'-'}£{money(Math.abs(x.amount))}</div>
     </div>`).join("");
 }
 function openWalletAction(type){
@@ -1021,10 +1021,10 @@ function renderHomeAlerts(){
     const sign=a.change>=0?"+":"";
     const status=a.change>=1.5?"Strong momentum":a.change<0?"Negative momentum":"On watch";
     return `<div class="asset-row">
-      <div><div class="ticker">${a.name}</div><div class="muted">${a.ticker} • ${status}</div></div>
-      <div>${money(a.price)}</div>
-      <div class="${dir}">${sign}${a.change.toFixed(2)}%</div>
-      <div class="hide-mobile"><span class="tag ${a.change>=0?'hot':'not'}">${a.change>=0?'WATCH':'ALERT'}</span></div>
+      <div><div class="ticker">£{a.name}</div><div class="muted">£{a.ticker} • £{status}</div></div>
+      <div>£{money(a.price)}</div>
+      <div class="£{dir}">£{sign}£{a.change.toFixed(2)}%</div>
+      <div class="hide-mobile"><span class="tag £{a.change>=0?'hot':'not'}">£{a.change>=0?'WATCH':'ALERT'}</span></div>
     </div>`;
   }).join("");
   host.innerHTML=alerts||`<div class="muted">Add assets to your watchlist to see alerts here.</div>`;
@@ -1056,13 +1056,13 @@ function renderSignals(){
     hotHost.innerHTML=hot.map(a=>`
       <div class="asset-row">
         <div>
-          <b>${a.name}</b>
-          <div class="muted">${a.ticker}</div>
-          <div class="signal-reason">${signalReason(a,"buy")}</div>
+          <b>£{a.name}</b>
+          <div class="muted">£{a.ticker}</div>
+          <div class="signal-reason">£{signalReason(a,"buy")}</div>
         </div>
-        <div>${money(a.price)}</div>
-        <div class="${a.change>=0?'up':'down'}">${a.change>=0?'+':''}${a.change.toFixed(2)}%</div>
-        <div><button class="trade-action buy-action" onclick="openTradeReview('BUY','${a.ticker}','${a.name}')">BUY</button></div>
+        <div>£{money(a.price)}</div>
+        <div class="£{a.change>=0?'up':'down'}">£{a.change>=0?'+':''}£{a.change.toFixed(2)}%</div>
+        <div><button class="trade-action buy-action" onclick="openTradeReview('BUY','£{a.ticker}','£{a.name}')">BUY</button></div>
       </div>`).join("");
   }
 
@@ -1070,19 +1070,19 @@ function renderSignals(){
     notHost.innerHTML=not.map(a=>`
       <div class="asset-row">
         <div>
-          <b>${a.name}</b>
-          <div class="muted">${a.ticker}</div>
-          <div class="signal-reason">${signalReason(a,"sell")}</div>
+          <b>£{a.name}</b>
+          <div class="muted">£{a.ticker}</div>
+          <div class="signal-reason">£{signalReason(a,"sell")}</div>
         </div>
-        <div>${money(a.price)}</div>
-        <div class="${a.change>=0?'up':'down'}">${a.change>=0?'+':''}${a.change.toFixed(2)}%</div>
-        <div><button class="trade-action sell-action" onclick="openTradeReview('SELL','${a.ticker}','${a.name}')">SELL</button></div>
+        <div>£{money(a.price)}</div>
+        <div class="£{a.change>=0?'up':'down'}">£{a.change>=0?'+':''}£{a.change.toFixed(2)}%</div>
+        <div><button class="trade-action sell-action" onclick="openTradeReview('SELL','£{a.ticker}','£{a.name}')">SELL</button></div>
       </div>`).join("");
   }
 }
 function openTradeReview(side,ticker,name){
-  document.getElementById("tradeTitle").textContent=`${side} ${ticker}`;
-  document.getElementById("tradeCopy").textContent=`Review ${name} (${ticker}) before choosing to ${side.toLowerCase()}. Review the asset and action carefully before continuing.`;
+  document.getElementById("tradeTitle").textContent=`£{side} £{ticker}`;
+  document.getElementById("tradeCopy").textContent=`Review £{name} (£{ticker}) before choosing to £{side.toLowerCase()}. Review the asset and action carefully before continuing.`;
   document.getElementById("tradeModal").classList.add("open");
 }
 function closeTradeReview(){document.getElementById("tradeModal").classList.remove("open")}
@@ -1099,7 +1099,7 @@ function runSearch(){
 function renderHoldings(){
   document.getElementById("holdingsBody").innerHTML=holdings.map(h=>{
     const val=h.qty*h.current, pnl=(h.current-h.avg)*h.qty, cls=pnl>=0?"up":"down";
-    return `<tr><td><b>${h.ticker}</b></td><td>${h.qty}</td><td>${money(h.avg)}</td><td>${money(val)}</td><td class="${cls}">${pnl>=0?"+":""}${money(pnl)}</td></tr>`;
+    return `<tr><td><b>£{h.ticker}</b></td><td>£{h.qty}</td><td>£{money(h.avg)}</td><td>£{money(val)}</td><td class="£{cls}">£{pnl>=0?"+":""}£{money(pnl)}</td></tr>`;
   }).join("");
 }
 function addInvestment(){
