@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620">
+<defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#08131d"/><stop offset="1" stop-color="#14210b"/></linearGradient></defs>
+<rect width="1200" height="620" fill="url(#g3)"/><g opacity=".18" stroke="#8edbff"><path d="M0 500L1200 500M0 390L1200 390M0 280L1200 280M0 170L1200 170"/></g>
+<g transform="translate(150 220)"><rect width="240" height="135" rx="20" fill="#1b1c18" stroke="#ffd95a" stroke-width="5"/><rect x="35" y="35" width="170" height="65" rx="12" fill="#d4a924"/><text x="120" y="79" text-anchor="middle" fill="#fff1aa" font-family="Arial" font-size="30" font-weight="700">GOLD</text></g>
+<g transform="translate(495 165)"><path d="M105 0c72 103 105 160 105 220 0 70-47 120-105 120S0 290 0 220C0 160 34 103 105 0z" fill="#111a21" stroke="#58c9ff" stroke-width="6"/><text x="105" y="240" text-anchor="middle" fill="#dff6ff" font-family="Arial" font-size="30" font-weight="700">OIL</text></g>
+<g transform="translate(835 205)"><path d="M100 0c55 68 90 116 90 166 0 64-40 109-90 109S10 230 10 166C10 116 45 68 100 0z" fill="#0b293a" stroke="#72ff2b" stroke-width="6"/><text x="100" y="190" text-anchor="middle" fill="#eaffdf" font-family="Arial" font-size="28" font-weight="700">GAS</text></g>
+<text x="80" y="78" fill="#eaf8ff" font-family="Arial" font-size="38" font-weight="700">COMMODITY MARKETS</text><text x="80" y="114" fill="#8da8ba" font-family="Arial" font-size="20">Gold • oil • natural gas • macro drivers</text>
+</svg>
