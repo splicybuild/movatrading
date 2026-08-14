@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620">
-<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06111b"/><stop offset="1" stop-color="#0a2333"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-<rect width="1200" height="620" fill="url(#g)"/><g opacity=".16" stroke="#53c8ff"><path d="M0 520H1200M0 420H1200M0 320H1200M0 220H1200M0 120H1200"/><path d="M120 0V620M320 0V620M520 0V620M720 0V620M920 0V620M1120 0V620"/></g>
-<g stroke="#64d5ff" stroke-width="9" fill="none" filter="url(#glow)"><path d="M70 500 C180 455 230 470 310 390 S460 365 535 310 S685 300 760 215 S910 230 1135 85"/></g>
-<g fill="#72ff2b" filter="url(#glow)"><path d="M1110 62l58 10-36 47-4-25-72 67-16-18 73-68z"/></g>
-<g stroke="#7fddff" fill="#0f2d40"><path d="M160 405v92M150 432h20v40h-20zM270 330v125M260 360h20v58h-20zM390 345v110M380 365h20v48h-20zM505 260v120M495 285h20v53h-20zM630 235v115M620 260h20v48h-20zM770 160v120M760 190h20v52h-20zM910 180v105M900 205h20v43h-20z"/></g>
-<text x="70" y="82" fill="#eaf8ff" font-family="Arial" font-size="38" font-weight="700">MARKET MOMENTUM</text><text x="70" y="118" fill="#8da8ba" font-family="Arial" font-size="20">Price action • volume • opportunity</text>
-</svg>
