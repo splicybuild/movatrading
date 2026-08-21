@@ -3132,8 +3132,27 @@ main > section.page.active{display:block !important}
 @media(max-width:900px){.v147-screener-controls{grid-template-columns:1fr 1fr}.v147-screen-row{grid-template-columns:1.5fr .8fr .8fr .7fr}.v147-screen-row>*:nth-child(5),.v147-screen-row>*:nth-child(6){display:none}}
 @media(max-width:600px){.v147-screener-head{display:block}.v147-screener-launch{margin-top:10px}.v147-screener-controls{grid-template-columns:1fr}.v147-screen-row{grid-template-columns:1.6fr .9fr .8fr}.v147-screen-row>*:nth-child(4){display:none}}
 </style>
+
+<style id="v148-verified-layout-fixes">
+/* MOVA v148 VERIFIED FIXES — direct source handlers + compact asset research layout */
+body[data-mova-build="v148"]::after{content:"MOVA v148";position:fixed;right:12px;bottom:12px;z-index:12000;background:#07131d;border:1px solid rgba(98,200,255,.38);color:#62c8ff;border-radius:999px;padding:6px 9px;font:800 9px/1 system-ui;letter-spacing:.08em;opacity:.9;pointer-events:none}
+.v148-explore-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+/* Make price history and driver analysis sequential instead of equal-height columns. */
+#assetDetail .asset-detail-grid{display:block!important;margin-top:14px!important}
+#assetDetail .asset-history-card{width:100%;box-sizing:border-box}
+#assetDetail .asset-pulse-analysis{width:100%;box-sizing:border-box;margin-top:12px!important;min-height:0!important;height:auto!important}
+#assetDetail .asset-pulse-analysis:not(.v147-expanded){padding-bottom:14px!important}
+#assetDetail .asset-pulse-analysis:not(.v147-expanded) .asset-live-drivers,
+#assetDetail .asset-pulse-analysis:not(.v147-expanded) .asset-score-grid,
+#assetDetail .asset-pulse-analysis:not(.v147-expanded) .analysis-explainer{display:none!important}
+#assetDetail .asset-pulse-analysis:not(.v147-expanded) #assetWhyText{margin-bottom:4px!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#assetDetail .asset-research-card{margin-top:12px!important}
+#assetDetail .asset-history-chart{height:300px!important}
+#assetDetail .asset-history-stats{margin-bottom:0!important}
+@media(max-width:800px){.v148-explore-actions{justify-content:flex-start}.m127-explore-head{align-items:flex-start!important}.v147-screener-launch{width:auto}}
+</style>
 </head>
-<body data-mova-build="v122">
+<body data-mova-build="v148">
 <div class="app">
 <header>
 <div aria-label="Go to Home" class="brand" id="brandHome" onclick="return showPage('home')" role="button" style="cursor:pointer" tabindex="0">
@@ -3222,7 +3241,7 @@ main > section.page.active{display:block !important}
     </div>
   </section>
 
-  <div class="m127-home-head m127-explore-head"><div><div class="label">PICK A MOVE</div><h1>Explore markets</h1></div><span class="muted">Stocks · Indices · Commodities · Forex</span></div>
+  <div class="m127-home-head m127-explore-head"><div><div class="label">PICK A MOVE</div><h1>Explore markets</h1></div><div class="v148-explore-actions"><span class="muted">Stocks · Indices · Commodities · Forex</span><button id="v148ScreenerLaunch" class="v147-screener-launch" type="button" onclick="return v147OpenScreener()"><span class="v147-premium-pill">PREMIUM</span> Stock Screener</button></div></div>
   <section class="m127-explorer">
     <div class="m127-tabs" role="tablist">
       <button class="active" type="button" data-m127-tab="stocks" onclick="return movaExploreMarket('stocks',this)">Stocks</button>
@@ -3789,6 +3808,7 @@ main > section.page.active{display:block !important}
         <div class="detail-stat"><span>Market status</span><strong id="assetMarketStatus">—</strong></div>
       </div>
       <div class="analysis-explainer" id="assetAnalysisExplainer"></div>
+      <button class="v147-analysis-toggle" type="button" onclick="return v147ToggleAnalysis()">Expand full driver analysis ↓</button>
     </div>
   </div>
 
@@ -4311,7 +4331,13 @@ const MOVA_ASSET_ALIASES={
   XAGUSD:"SILVER", "XAG/USD":"SILVER", SILVER:"SILVER",
   USOIL:"OIL", OIL:"OIL", "CRUDE OIL":"OIL", "WTI OIL":"OIL",
   "NATURAL GAS":"NG", NATGAS:"NG",
-  "NASDAQ100":"NDX", "NASDAQ 100":"NDX", NDX:"NDX"
+  "NASDAQ100":"NDX", "NASDAQ 100":"NDX", NDX:"NDX",
+  "S&P 500":"SPX", "S&P500":"SPX", SP500:"SPX", SPX:"SPX",
+  "DOW JONES":"DJI", "DOW":"DJI", DJI:"DJI",
+  "EUR/USD":"EURUSD", EURUSD:"EURUSD",
+  "GBP/USD":"GBPUSD", GBPUSD:"GBPUSD",
+  "USD/JPY":"USDJPY", USDJPY:"USDJPY",
+  "USD/CHF":"USDCHF", USDCHF:"USDCHF"
 };
 function canonicalTicker(value){
   const key=String(value||"").trim().toUpperCase();
@@ -4646,14 +4672,40 @@ document.addEventListener("DOMContentLoaded",()=>{
   window.addEventListener("resize",()=>setTimeout(applyMobileAssetCollapsibles,50));
 });
 
+function ensureExploreAsset(ticker,name=""){
+  ticker=canonicalTicker(ticker);
+  let existing=assets.find(x=>canonicalTicker(x.ticker)===ticker);
+  if(existing)return existing;
+  let def=null,kind="";
+  try{
+    if(typeof M127_MARKETS!=="undefined"){
+      for(const [k,rows] of Object.entries(M127_MARKETS)){
+        const hit=(rows||[]).find(x=>canonicalTicker(x.t)===ticker);
+        if(hit){def=hit;kind=k;break;}
+      }
+    }
+  }catch(e){}
+  if(!def)return null;
+  const n=Number(String(def.p||"").replace(/[$,]/g,""));
+  const c=Number(String(def.c||"").replace(/[^0-9+\-.]/g,""));
+  const type=kind==="indices"?"index":kind==="forex"?"forex":kind==="commodities"?"commodity":"stock";
+  const a={
+    name:def.n||name||ticker,ticker,price:Number.isFinite(n)?n:0,change:Number.isFinite(c)?c:0,
+    type,live:false,nativeCurrency:type==="forex"?"PAIR":"USD",
+    analysis:{momentum:Math.abs(c)>=3?"strong":Math.abs(c)>=1?"moderate":"steady",direction:c>=0?"advancing":"declining"}
+  };
+  assets.push(a);
+  return a;
+}
+
 function openAssetDetail(ticker, returnPage="pulse"){
   ticker=canonicalTicker(ticker);
-  let a=assets.find(x=>canonicalTicker(x.ticker)===ticker);
+  let a=assets.find(x=>canonicalTicker(x.ticker)===ticker) || ensureExploreAsset(ticker,ticker);
   if(!a && ticker==="GOOGL"){
     a={name:"Alphabet (Google)",ticker:"GOOGL",price:0,change:0,type:"stock",live:false,analysis:{}};
     assets.push(a);
   }
-  if(!a)return false;
+  if(!a){ console.warn("MOVA: asset could not be resolved",ticker); return false; }
 
   currentAssetDetailTicker=a.ticker;
   assetDetailReturnPage=returnPage;
@@ -7979,8 +8031,12 @@ const M127_MARKETS={
   {n:'USD / CHF',t:'USDCHF',p:'0.8661',c:'-0.1%',up:false,icon:'₣'}]
 };
 function m127Spark(up){const c=up?'#62c8ff':'#ff5160';const pts=up?'0,29 15,24 28,26 42,18 57,21 72,13 88,16 103,8 118,11 140,4':'0,6 15,11 29,9 44,17 58,14 74,23 89,20 104,28 119,25 140,32';return `<svg viewBox="0 0 140 36" preserveAspectRatio="none"><polyline fill="none" stroke="${c}" stroke-width="2.4" points="${pts}"/></svg>`}
-function m127CanOpen(t){return !!assets.find(x=>canonicalTicker(x.ticker)===canonicalTicker(t));}
-function m127Open(t,n){if(m127CanOpen(t))return openAssetDetail(t,'home');m127QuickLook(t,n);return false;}
+function m127CanOpen(t){return !!(assets.find(x=>canonicalTicker(x.ticker)===canonicalTicker(t))||ensureExploreAsset(t,t));}
+function m127Open(t,n){
+  const a=assets.find(x=>canonicalTicker(x.ticker)===canonicalTicker(t))||ensureExploreAsset(t,n);
+  if(a)return openAssetDetail(a.ticker,'home');
+  m127QuickLook(t,n);return false;
+}
 function m127RenderMarket(kind,btn){document.querySelectorAll('.m127-tabs button').forEach(b=>b.classList.toggle('active',b===btn||b.dataset.m127Tab===kind));const list=document.getElementById('m127MarketList');if(!list)return;list.innerHTML=(M127_MARKETS[kind]||[]).map(a=>`<div class="m127-market-row" role="button" tabindex="0" onclick="m127Open('${a.t}','${a.n.replace(/'/g,"\'")}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();m127Open('${a.t}','${a.n.replace(/'/g,"\'")}')}"><div class="m127-market-name"><div class="m127-mini-logo">${a.logo?`<img src="${a.logo}" alt="${a.n} logo" onerror="this.style.display='none';this.parentElement.textContent='${a.t.slice(0,2)}'">`:a.icon}</div><div><strong>${a.n}</strong><small>${a.t}</small></div></div><div class="m127-spark">${m127Spark(a.up)}</div><strong>${a.p}</strong><span class="m127-badge ${a.up?'':'down'}">${a.c==='--'?'--':(a.up?'▲ ':'▼ ')+a.c.replace(/[+-]/,'')}</span><button class="m127-star" type="button" title="Watch" onclick="event.stopPropagation();this.classList.toggle('on');this.textContent=this.classList.contains('on')?'★':'☆'">☆</button></div>`).join('');}
 function m127QuickLook(ticker,name){
   ticker=canonicalTicker(ticker);
@@ -8346,24 +8402,7 @@ window.mfRenderDriverLive=function(data){
     a={name:d.n||name||ct,ticker:ct,price:numberFrom147(d.p),change:changeFrom147(d.c),type,live:false,nativeCurrency:d.kind==='forex'?'PAIR':'USD',analysis:{momentum:Math.abs(changeFrom147(d.c))>=1?'moderate':'steady',direction:changeFrom147(d.c)>=0?'advancing':'declining'}};
     assets.push(a); return a;
   };
-  const originalM127Open147=window.m127Open;
-  window.m127CanOpen=function(t){return !!v147EnsureMarketAsset(t,t);};
-  window.m127Open=function(t,n){
-    const a=v147EnsureMarketAsset(t,n);
-    if(a && typeof openAssetDetail==='function')return openAssetDetail(a.ticker,'home');
-    if(typeof originalM127Open147==='function')return originalM127Open147(t,n);
-    return false;
-  };
-  const originalOpenDetail147=window.openAssetDetail;
-  window.openAssetDetail=function(ticker,returnPage='pulse'){
-    v147EnsureMarketAsset(ticker,ticker);
-    return originalOpenDetail147.call(this,ticker,returnPage);
-  };
-  const originalReturnAsset147=window.returnAssetFromDetail;
-  window.returnAssetFromDetail=function(){
-    if(typeof assetDetailReturnPage!=='undefined'&&assetDetailReturnPage==='stockScreener')return v147OpenScreener();
-    return originalReturnAsset147.call(this);
-  };
+  // v148: market opening is fixed directly in m127Open/openAssetDetail above.
   window.v147ToggleAnalysis=function(){
     const panel=document.querySelector('#assetDetail .asset-pulse-analysis'); if(!panel)return false;
     const expanded=panel.classList.toggle('v147-expanded');
