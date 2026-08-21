@@ -3109,6 +3109,29 @@ main > section.page.active{display:block !important}
 .mova-explore-row:hover{background:#0a151e}.mova-explore-name{display:flex;align-items:center;gap:10px}.mova-explore-name b,.mova-explore-name small{display:block}.mova-explore-name b{font-size:12px}.mova-explore-name small{font-size:9px;color:var(--muted)}.mova-explore-logo{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:#0d2433;color:var(--blue);font-weight:900}.mova-explore-spark{font-family:monospace;font-size:16px;white-space:nowrap;overflow:hidden}.mova-explore-spark.up{color:var(--green)}.mova-explore-spark.down{color:var(--red)}.mova-explore-spark.amber{color:var(--amber)}.mova-explore-change{padding:5px 8px;border-radius:999px;font-size:10px;font-weight:900;background:#0b2411;color:var(--green)}.mova-explore-change.down{background:#260b11;color:var(--red)}.mova-explore-star{border:0;background:none;color:#8295a6;font-size:20px}
 @media(max-width:800px){.mova-explore-row{grid-template-columns:1.42fr .82fr .56fr 28px;gap:7px;padding:9px 8px}.mova-explore-row>strong{font-size:10px}.mova-explore-spark{font-size:12px}.mova-explore-name b{font-size:9px}.mova-explore-name small{font-size:7px}.mova-explore-logo{width:30px;height:30px}.mova-explore-change{font-size:8px;padding:4px 5px}.mova-explore-star{font-size:17px}}
 </style>
+
+<style id="v147-layout-screener-fixes">
+/* MOVA v147 — working market rows, compact asset analysis, premium screener test */
+.asset-detail-grid{align-items:start!important}
+.asset-pulse-analysis{position:relative;align-self:start}
+.asset-pulse-analysis:not(.v147-expanded) .asset-live-drivers,
+.asset-pulse-analysis:not(.v147-expanded) .asset-score-grid,
+.asset-pulse-analysis:not(.v147-expanded) .analysis-explainer{display:none!important}
+.v147-analysis-toggle{width:100%;margin-top:12px;border:1px solid rgba(98,200,255,.22);background:#0a1720;color:var(--blue);border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;text-align:left}
+.v147-analysis-toggle:hover{border-color:rgba(98,200,255,.45);background:#0c1d28}
+.v147-screener-launch{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(121,239,49,.28);background:#0d1c14;color:#dfffd3;border-radius:999px;padding:8px 12px;font-weight:900;cursor:pointer}
+.v147-premium-pill{font-size:8px;letter-spacing:.08em;color:#071009;background:var(--green);border-radius:999px;padding:4px 7px}
+.v147-screener-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+.v147-screener-controls{display:grid;grid-template-columns:1.2fr repeat(4,minmax(120px,.7fr));gap:9px;margin:14px 0}
+.v147-screener-controls label{display:block}.v147-screener-controls span{display:block;color:var(--muted);font-size:9px;margin-bottom:5px;font-weight:850}
+.v147-screener-controls input,.v147-screener-controls select{width:100%;box-sizing:border-box;background:#08121b;border:1px solid rgba(255,255,255,.08);color:#fff;border-radius:11px;padding:10px}
+.v147-screen-table{border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden}
+.v147-screen-row{display:grid;grid-template-columns:1.5fr .7fr .7fr .8fr .8fr .7fr;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.055);cursor:pointer}
+.v147-screen-row:last-child{border-bottom:0}.v147-screen-row:hover{background:#0a151e}.v147-screen-row.header{cursor:default;background:#071019;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.05em}
+.v147-screen-main b,.v147-screen-main small{display:block}.v147-screen-main small{color:var(--muted);margin-top:2px}.v147-screen-score{font-weight:900}.v147-screen-empty{padding:28px;text-align:center;color:var(--muted)}
+@media(max-width:900px){.v147-screener-controls{grid-template-columns:1fr 1fr}.v147-screen-row{grid-template-columns:1.5fr .8fr .8fr .7fr}.v147-screen-row>*:nth-child(5),.v147-screen-row>*:nth-child(6){display:none}}
+@media(max-width:600px){.v147-screener-head{display:block}.v147-screener-launch{margin-top:10px}.v147-screener-controls{grid-template-columns:1fr}.v147-screen-row{grid-template-columns:1.6fr .9fr .8fr}.v147-screen-row>*:nth-child(4){display:none}}
+</style>
 </head>
 <body data-mova-build="v122">
 <div class="app">
@@ -3665,6 +3688,25 @@ main > section.page.active{display:block !important}
       </div>
     </aside>
   </div>
+</section>
+
+
+<section class="page" id="stockScreener">
+  <div class="v147-screener-head">
+    <div><button class="back-btn" type="button" onclick="showPage('home',null)">← Back to markets</button><div class="label">PREMIUM RESEARCH TOOL</div><h1 style="margin:5px 0 6px">MOVA Stock Screener</h1><p class="muted">Filter the stocks currently available to MOVA by price, daily move and momentum. Premium access is temporarily unlocked for testing.</p></div>
+    <div class="v147-screener-launch"><span class="v147-premium-pill">PREMIUM</span> TEST ACCESS UNLOCKED</div>
+  </div>
+  <div class="card">
+    <div class="v147-screener-controls">
+      <label><span>SEARCH</span><input id="v147ScreenSearch" placeholder="Ticker or company" oninput="v147RenderScreener()"></label>
+      <label><span>DIRECTION</span><select id="v147ScreenDirection" onchange="v147RenderScreener()"><option value="all">All stocks</option><option value="up">Gainers</option><option value="down">Decliners</option></select></label>
+      <label><span>MIN PRICE ($)</span><input id="v147ScreenMinPrice" type="number" min="0" step="1" placeholder="0" oninput="v147RenderScreener()"></label>
+      <label><span>MIN DAILY MOVE %</span><input id="v147ScreenMinMove" type="number" min="0" step="0.1" placeholder="0" oninput="v147RenderScreener()"></label>
+      <label><span>SORT</span><select id="v147ScreenSort" onchange="v147RenderScreener()"><option value="move">Daily move</option><option value="price">Price</option><option value="ticker">Ticker</option></select></label>
+    </div>
+    <div id="v147ScreenerResults"></div>
+  </div>
+  <p class="notice">Prototype screener for research/testing. Results reflect the market universe and data currently available to MOVA and are not personalised investment advice.</p>
 </section>
 
 <section class="page asset-detail-page" id="assetDetail">
@@ -8285,5 +8327,82 @@ window.mfRenderDriverLive=function(data){
  const news=document.getElementById('mfDriverNews');if(news){const ranked=uniqueRankNews(heads,5);news.innerHTML=ranked.length?`<h4>Top price-relevant catalysts</h4><div class="v146-news-summary">MOVA condensed ${heads.length} returned headlines to the ${ranked.length} most relevant current catalysts. Markers on the price chart show timing correlation where matching price-history timestamps are available; they do not prove causation.</div><div class="mf-driver-news-list">${ranked.map(({x:h,r})=>{const meta=[h.source,h.datetime?new Date(h.datetime).toLocaleString():null].filter(Boolean).join(' · '),impact=`${r.impact} impact · ${r.direction}`;return h.url?`<a class="mf-driver-news-item" href="${esc(h.url)}" target="_blank" rel="noopener"><div class="v146-news-impact ${r.impact.toLowerCase()} ${r.direction==='positive'?'positive':''}">${esc(impact.toUpperCase())}</div><b>${esc(h.headline||h.title||'Market update')}</b><small>${esc(meta)}</small><small class="v146-news-reason">${esc(r.reason)}</small></a>`:`<div class="mf-driver-news-item"><div class="v146-news-impact ${r.impact.toLowerCase()}">${esc(impact.toUpperCase())}</div><b>${esc(h.headline||h.title||'Market update')}</b><small>${esc(meta)}</small></div>`}).join('')}</div>`:'<div class="muted">No high-impact current catalyst was returned for this driver.</div>'}
 };
 
+})();
+</script>
+<script id="v147-market-layout-screener">
+(function(){
+  'use strict';
+  function esc147(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function allMarketDefs147(){return Object.entries((typeof M127_MARKETS!=='undefined'?M127_MARKETS:{})).flatMap(([kind,rows])=>(rows||[]).map(x=>({...x,kind})));}
+  function marketDef147(t){const c=typeof canonicalTicker==='function'?canonicalTicker(t):String(t||'').toUpperCase();return allMarketDefs147().find(x=>(typeof canonicalTicker==='function'?canonicalTicker(x.t):x.t)===c);}
+  function numberFrom147(v){const n=Number(String(v??'').replace(/[$,]/g,''));return Number.isFinite(n)?n:0;}
+  function changeFrom147(v){const n=Number(String(v??'').replace(/[^0-9+\-.]/g,''));return Number.isFinite(n)?n:0;}
+  window.v147EnsureMarketAsset=function(t,name){
+    const ct=typeof canonicalTicker==='function'?canonicalTicker(t):String(t||'').toUpperCase();
+    let a=Array.isArray(assets)?assets.find(x=>(typeof canonicalTicker==='function'?canonicalTicker(x.ticker):x.ticker)===ct):null;
+    if(a)return a;
+    const d=marketDef147(ct); if(!d||!Array.isArray(assets))return null;
+    const type=d.kind==='indices'?'index':d.kind==='forex'?'forex':d.kind==='commodities'?'commodity':'stock';
+    a={name:d.n||name||ct,ticker:ct,price:numberFrom147(d.p),change:changeFrom147(d.c),type,live:false,nativeCurrency:d.kind==='forex'?'PAIR':'USD',analysis:{momentum:Math.abs(changeFrom147(d.c))>=1?'moderate':'steady',direction:changeFrom147(d.c)>=0?'advancing':'declining'}};
+    assets.push(a); return a;
+  };
+  const originalM127Open147=window.m127Open;
+  window.m127CanOpen=function(t){return !!v147EnsureMarketAsset(t,t);};
+  window.m127Open=function(t,n){
+    const a=v147EnsureMarketAsset(t,n);
+    if(a && typeof openAssetDetail==='function')return openAssetDetail(a.ticker,'home');
+    if(typeof originalM127Open147==='function')return originalM127Open147(t,n);
+    return false;
+  };
+  const originalOpenDetail147=window.openAssetDetail;
+  window.openAssetDetail=function(ticker,returnPage='pulse'){
+    v147EnsureMarketAsset(ticker,ticker);
+    return originalOpenDetail147.call(this,ticker,returnPage);
+  };
+  const originalReturnAsset147=window.returnAssetFromDetail;
+  window.returnAssetFromDetail=function(){
+    if(typeof assetDetailReturnPage!=='undefined'&&assetDetailReturnPage==='stockScreener')return v147OpenScreener();
+    return originalReturnAsset147.call(this);
+  };
+  window.v147ToggleAnalysis=function(){
+    const panel=document.querySelector('#assetDetail .asset-pulse-analysis'); if(!panel)return false;
+    const expanded=panel.classList.toggle('v147-expanded');
+    const btn=panel.querySelector('.v147-analysis-toggle'); if(btn)btn.textContent=expanded?'Collapse detailed drivers ↑':'Expand full driver analysis ↓';
+    return false;
+  };
+  function installAnalysisToggle147(){
+    const panel=document.querySelector('#assetDetail .asset-pulse-analysis'); if(!panel)return;
+    if(!panel.dataset.v147Ready){panel.classList.remove('v147-expanded');panel.dataset.v147Ready='1';}
+    if(!panel.querySelector('.v147-analysis-toggle')){const b=document.createElement('button');b.type='button';b.className='v147-analysis-toggle';b.textContent='Expand full driver analysis ↓';b.onclick=window.v147ToggleAnalysis;panel.appendChild(b);}
+  }
+  window.v147OpenScreener=function(){
+    document.querySelectorAll('main > .page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+    const page=document.getElementById('stockScreener'); if(page){page.classList.add('active');page.style.display='block';}
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    v147RenderScreener(); window.scrollTo(0,0); return false;
+  };
+  function screenerStocks147(){
+    allMarketDefs147().filter(x=>x.kind==='stocks'&&!['NDX','GOLD','OIL','EURUSD','GBPUSD'].includes(x.t)).forEach(d=>v147EnsureMarketAsset(d.t,d.n));
+    const seen=new Set(); return (Array.isArray(assets)?assets:[]).filter(a=>{const type=String(a.type||'stock').toLowerCase();if(type!=='stock')return false;const t=typeof canonicalTicker==='function'?canonicalTicker(a.ticker):a.ticker;if(seen.has(t))return false;seen.add(t);return true;});
+  }
+  window.v147RenderScreener=function(){
+    const host=document.getElementById('v147ScreenerResults'); if(!host)return;
+    const q=String(document.getElementById('v147ScreenSearch')?.value||'').trim().toLowerCase();
+    const dir=document.getElementById('v147ScreenDirection')?.value||'all';
+    const minP=Number(document.getElementById('v147ScreenMinPrice')?.value||0);
+    const minM=Number(document.getElementById('v147ScreenMinMove')?.value||0);
+    const sort=document.getElementById('v147ScreenSort')?.value||'move';
+    let rows=screenerStocks147().map(a=>({a,t:String(a.ticker||''),name:String(a.name||a.ticker||''),price:Number(a.priceUSD??a.priceNative??a.price??0),move:Number(a.changePct??a.change??0),momentum:String(a.analysis?.momentum||'steady')}));
+    rows=rows.filter(x=>(!q||x.t.toLowerCase().includes(q)||x.name.toLowerCase().includes(q))&&(dir==='all'||(dir==='up'?x.move>0:x.move<0))&&x.price>=minP&&Math.abs(x.move)>=minM);
+    rows.sort((a,b)=>sort==='price'?b.price-a.price:sort==='ticker'?a.t.localeCompare(b.t):Math.abs(b.move)-Math.abs(a.move));
+    host.innerHTML=`<div class="v147-screen-table"><div class="v147-screen-row header"><span>COMPANY</span><span>PRICE</span><span>DAILY MOVE</span><span>MOMENTUM</span><span>TYPE</span><span>RESEARCH</span></div>${rows.map(x=>`<div class="v147-screen-row" role="button" tabindex="0" onclick="openAssetDetail('${esc147(x.t)}','stockScreener')"><div class="v147-screen-main"><b>${esc147(x.name)}</b><small>${esc147(x.t)}</small></div><strong>$${Number.isFinite(x.price)&&x.price?x.price.toLocaleString(undefined,{maximumFractionDigits:2}):'—'}</strong><span class="${x.move>=0?'up':'down'} v147-screen-score">${x.move>=0?'+':''}${x.move.toFixed(2)}%</span><span>${esc147(x.momentum)}</span><span>Stock</span><span class="blue">Open →</span></div>`).join('')||'<div class="v147-screen-empty">No stocks match those filters.</div>'}</div>`;
+  };
+  function addScreenerLaunch147(){
+    const head=document.querySelector('.m127-home-head.m127-explore-head');if(!head||document.getElementById('v147ScreenerLaunch'))return;
+    const right=head.querySelector('.muted'); if(right){const wrap=document.createElement('div');wrap.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end';right.replaceWith(wrap);wrap.appendChild(right);const b=document.createElement('button');b.id='v147ScreenerLaunch';b.type='button';b.className='v147-screener-launch';b.innerHTML='<span class="v147-premium-pill">PREMIUM</span> Stock Screener';b.onclick=window.v147OpenScreener;wrap.appendChild(b);}
+  }
+  function init147(){installAnalysisToggle147();addScreenerLaunch147();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init147,{once:true});else init147();
+  const mo147=new MutationObserver(()=>installAnalysisToggle147());const detail147=document.getElementById('assetDetail');if(detail147)mo147.observe(detail147,{childList:true,subtree:true});
 })();
 </script>
