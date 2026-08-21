@@ -1,6 +1,7 @@
 {
-  "name": "mova-trading",
-  "version": "1.41.0",
+  "name": "mova-trading-v146",
+  "version": "1.46.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "description": "MOVA Trading v146 - weighted AI Scan, catalyst graphs and condensed high-impact news"
 }
