@@ -1,0 +1,68 @@
+name: Restore single MOVA wordmark
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/restore-single-mova-wordmark.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  restore-wordmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore original single MOVA wordmark
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          marker = '</style>'
+          css = r'''
+
+/* v151 single MOVA wordmark restored */
+.brand{justify-content:center!important;width:100%!important;gap:0!important}
+.brand-app-icon{display:none!important}
+.brand-wordmark{
+  display:block!important;
+  height:44px!important;
+  width:auto!important;
+  max-width:min(86vw,620px)!important;
+  object-fit:contain!important;
+  margin:0 auto!important
+}
+@media(max-width:800px){
+  .brand{justify-content:center!important;width:100%!important;gap:0!important}
+  .brand-wordmark{display:block!important;height:44px!important;max-width:min(86vw,620px)!important;margin:0 auto!important}
+}
+'''
+          if 'v151 single MOVA wordmark restored' not in text:
+              pos = text.rfind(marker)
+              if pos < 0:
+                  raise SystemExit('No closing style tag found')
+              text = text[:pos] + css + '\n' + text[pos:]
+          text = text.replace('<!-- MOVA BUILD v150 SLIM BRANDING -->', '<!-- MOVA BUILD v151 SINGLE WORDMARK RESTORED -->')
+          text = text.replace('data-mova-build="v150-slim-branding"', 'data-mova-build="v151-single-wordmark"')
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit restored branding
+        run: |
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes required"
+            exit 0
+          fi
+          git commit -m "Restore original MOVA single wordmark"
+          git push origin main
