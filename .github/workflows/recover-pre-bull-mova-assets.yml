@@ -1,4 +1,4 @@
-name: Recover pre-bull MOVA assets
+name: Recover and install approved MOVA assets
 
 on:
   push:
@@ -19,34 +19,71 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract exact pre-bull embedded assets
+      - name: Install recovered approved assets
         run: |
+          cp mova-recovered-app-icon.png mova-approved-icon.png
+          cp mova-recovered-wordmark.png mova-approved-wordmark.png
+
           python - <<'PY'
           from pathlib import Path
-          import base64, re, subprocess
+          import re
 
-          source_commit='50b6b723270f57b9dc80c69401a8dbd849a2bc1d'
-          html=subprocess.check_output(['git','show',f'{source_commit}:index.html'], text=True)
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
 
-          def extract(class_name, out_name):
-              pat=rf'<img(?=[^>]*class="[^"]*\b{re.escape(class_name)}\b[^"]*")(?=[^>]*src="data:image/png;base64,([^"]+)")[^>]*>'
-              m=re.search(pat, html, re.I|re.S)
-              if not m:
-                  raise SystemExit(f'Could not find {class_name} embedded PNG')
-              data=base64.b64decode(m.group(1))
-              if not data.startswith(b'\x89PNG\r\n\x1a\n'):
-                  raise SystemExit(f'{class_name} did not decode as PNG')
-              Path(out_name).write_bytes(data)
-              print(out_name, len(data))
+          text = re.sub(r'mova-icon-black-blue\.png(?:\?v=\d+)?', 'mova-approved-icon.png?v=156', text)
 
-          extract('brand-app-icon','mova-recovered-app-icon.png')
-          extract('brand-wordmark','mova-recovered-wordmark.png')
+          match = re.search(r'(<div[^>]*class="brand"[^>]*id="brandHome"[^>]*>)', text, re.I)
+          if not match:
+              match = re.search(r'(<div[^>]*id="brandHome"[^>]*class="brand"[^>]*>)', text, re.I)
+          if not match:
+              raise SystemExit('brandHome container not found')
+
+          start = match.end()
+          end = text.find('</div>', start)
+          if end < 0:
+              raise SystemExit('brandHome closing div not found')
+
+          assets = '\n<img alt="MOVA icon" class="brand-app-icon" src="mova-approved-icon.png?v=156">\n<img alt="MOVA TRADING" class="brand-wordmark" src="mova-approved-wordmark.png?v=156">\n'
+          text = text[:start] + assets + text[end:]
+
+          text = text.replace('const source=document.querySelector(".brand-wordmark");', 'const source=document.querySelector(".brand-app-icon");')
+
+          css = '''
+<style id="v156-approved-branding">
+/* v156 exact recovered approved MOVA assets */
+header .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:10px!important;flex:0 0 auto!important}
+header .brand-app-icon{display:block!important;width:58px!important;height:58px!important;flex:0 0 58px!important;object-fit:contain!important;border-radius:0!important;margin:0!important;box-shadow:none!important}
+header .brand-wordmark{display:block!important;height:52px!important;width:auto!important;max-width:min(40vw,520px)!important;object-fit:contain!important;object-position:left center!important;margin:0!important}
+header .mova-brand-copy{display:none!important}
+@media(max-width:800px){
+ header .brand{justify-content:center!important;width:auto!important;gap:0!important}
+ header .brand-app-icon{display:block!important;width:54px!important;height:54px!important;flex:0 0 54px!important;object-fit:contain!important;margin:0!important}
+ header .brand-wordmark{display:none!important}
+ body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}
+ body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}
+ body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(34vw,128px)!important;max-width:128px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}
+ body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
+ body.mova-mobile-welcome .mobile-auth-tagline{order:3!important}
+}
+</style>
+'''
+          text = text.replace('</head>', css + '\n</head>', 1)
+          text = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v156 APPROVED BRAND ASSETS -->', text, count=1)
+          text = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v156-approved-brand-assets"', text, count=1)
+
+          if 'mova-icon-black-blue.png' in text:
+              raise SystemExit('Rejected bull asset still referenced')
+          if 'mova-approved-icon.png?v=156' not in text or 'mova-approved-wordmark.png?v=156' not in text:
+              raise SystemExit('Approved asset references missing')
+
+          path.write_text(text, encoding='utf-8')
           PY
 
-      - name: Commit recovered assets only
+      - name: Commit approved assets and branding
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add mova-recovered-app-icon.png mova-recovered-wordmark.png
-          git commit -m "Recover exact pre-bull MOVA assets from v148"
+          git add index.html mova-approved-icon.png mova-approved-wordmark.png
+          git commit -m "Install approved MOVA branding assets"
           git push origin main
