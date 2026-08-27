@@ -1,0 +1,52 @@
+name: Recover pre-bull MOVA assets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/recover-pre-bull-mova-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  recover-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract exact pre-bull embedded assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, re, subprocess
+
+          source_commit='50b6b723270f57b9dc80c69401a8dbd849a2bc1d'
+          html=subprocess.check_output(['git','show',f'{source_commit}:index.html'], text=True)
+
+          def extract(class_name, out_name):
+              pat=rf'<img(?=[^>]*class="[^"]*\b{re.escape(class_name)}\b[^"]*")(?=[^>]*src="data:image/png;base64,([^"]+)")[^>]*>'
+              m=re.search(pat, html, re.I|re.S)
+              if not m:
+                  raise SystemExit(f'Could not find {class_name} embedded PNG')
+              data=base64.b64decode(m.group(1))
+              if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+                  raise SystemExit(f'{class_name} did not decode as PNG')
+              Path(out_name).write_bytes(data)
+              print(out_name, len(data))
+
+          extract('brand-app-icon','mova-recovered-app-icon.png')
+          extract('brand-wordmark','mova-recovered-wordmark.png')
+          PY
+
+      - name: Commit recovered assets only
+        run: |
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add mova-recovered-app-icon.png mova-recovered-wordmark.png
+          git commit -m "Recover exact pre-bull MOVA assets from v148"
+          git push origin main
