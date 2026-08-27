@@ -1,0 +1,134 @@
+name: Fix MOVA header composition
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix-mova-header-composition.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix-header:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore requested desktop and mobile branding
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          # Restore the separate MOVA icon immediately before the original wordmark.
+          if 'class="brand-app-icon"' not in text:
+              pattern = r'(<img[^>]*class="brand-wordmark"[^>]*>)'
+              replacement = '<img alt="MOVA icon" class="brand-app-icon" src="mova-icon-black-blue.png?v=155">\n\\1'
+              text, count = re.subn(pattern, replacement, text, count=1, flags=re.I)
+              if count != 1:
+                  raise SystemExit('Could not find the original MOVA wordmark in the header.')
+
+          # Mobile welcome/app logo must use the icon, not the full wordmark.
+          text = text.replace('const source=document.querySelector(".brand-wordmark");', 'const source=document.querySelector(".brand-app-icon");')
+
+          # Remove the previous single-wordmark canonical block.
+          text = re.sub(r'\n\s*/\* v153 CANONICAL MOVA BRANDING.*?(?=\n\s*</style>)', '', text, flags=re.S)
+
+          css = '''
+          /* v155 REQUESTED MOVA BRANDING — icon + original wordmark desktop, icon only mobile */
+          header .brand{
+            display:flex!important;
+            align-items:center!important;
+            justify-content:flex-start!important;
+            width:auto!important;
+            gap:14px!important;
+            flex:0 0 auto!important;
+          }
+          header .brand-app-icon{
+            display:block!important;
+            width:72px!important;
+            height:72px!important;
+            flex:0 0 72px!important;
+            object-fit:contain!important;
+            border-radius:0!important;
+            box-shadow:none!important;
+          }
+          header .brand-wordmark{
+            display:block!important;
+            height:52px!important;
+            width:auto!important;
+            max-width:min(39vw,500px)!important;
+            object-fit:contain!important;
+            margin:0!important;
+          }
+          header .mova-brand-copy{display:none!important}
+
+          @media(max-width:800px){
+            header .brand{
+              display:flex!important;
+              align-items:center!important;
+              justify-content:center!important;
+              width:auto!important;
+              gap:0!important;
+            }
+            header .brand-app-icon{
+              display:block!important;
+              width:54px!important;
+              height:54px!important;
+              flex:0 0 54px!important;
+              object-fit:contain!important;
+              margin:0!important;
+            }
+            header .brand-wordmark{display:none!important}
+            body.mova-mobile-welcome .mobile-auth-brand{
+              display:flex!important;
+              flex-direction:column!important;
+              align-items:center!important;
+            }
+            body.mova-mobile-welcome .mobile-auth-brand>.label{
+              order:1!important;
+              margin:0 0 10px!important;
+            }
+            body.mova-mobile-welcome .mobile-auth-logo{
+              order:2!important;
+              display:block!important;
+              width:min(42vw,150px)!important;
+              max-width:150px!important;
+              height:auto!important;
+              max-height:none!important;
+              object-fit:contain!important;
+              border-radius:0!important;
+              margin:0 auto 10px!important;
+              box-shadow:none!important;
+            }
+            body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
+            body.mova-mobile-welcome .mobile-auth-tagline{order:3!important}
+          }
+          '''
+
+          pos = text.rfind('</style>')
+          if pos < 0:
+              raise SystemExit('No closing style tag found.')
+          text = text[:pos] + css + '\n' + text[pos:]
+
+          text = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v155 HEADER COMPOSITION FIX -->', text, count=1)
+          text = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v155-header-composition"', text, count=1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit corrected branding
+        run: |
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Restore requested MOVA header branding"
+          git push origin main
