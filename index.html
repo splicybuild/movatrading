@@ -3141,8 +3141,8 @@ main > section.page.active{display:block !important}
 <link rel="apple-touch-icon" href="mova-icon-black-blue.png?v=150">
 
 </head>
-<!-- MOVA BUILD v151 SINGLE WORDMARK RESTORED -->
-<body data-mova-build="v151-single-wordmark">
+<!-- MOVA BUILD v152 ORIGINAL WORDMARK MOBILE FIX -->
+<body data-mova-build="v152-original-wordmark-mobile">
 <div class="app">
 <header>
 <div aria-label="Go to Home" class="brand" id="brandHome" onclick="return showPage('home')" role="button" style="cursor:pointer" tabindex="0">
@@ -5677,7 +5677,7 @@ function isMovaMobile(){
 function syncMobileAuthLogo(){
   const target=document.getElementById("mobileAuthLogo");
   if(!target)return;
-  const source=document.querySelector(".brand-app-icon");
+  const source=document.querySelector(".brand-wordmark");
   if(source?.src)target.src=source.src;
 }
 function setMobileWelcomeMode(enabled){
@@ -8242,6 +8242,21 @@ window.addEventListener('DOMContentLoaded',()=>{mfRenderAiBrief();mfRenderPerson
 .brand-app-icon{display:none!important}
 .brand-wordmark{display:block!important;height:44px!important;width:auto!important;max-width:min(86vw,620px)!important;object-fit:contain!important;margin:0 auto!important}
 @media(max-width:800px){.brand{justify-content:center!important;width:100%!important;gap:0!important}.brand-wordmark{display:block!important;height:44px!important;max-width:min(86vw,620px)!important;margin:0 auto!important}}
+
+
+/* v152 original MOVA wordmark on desktop + mobile app */
+.brand{justify-content:center!important;width:100%!important;gap:0!important}
+.brand-app-icon{display:none!important}
+.brand-wordmark{display:block!important;height:44px!important;width:auto!important;max-width:min(86vw,620px)!important;object-fit:contain!important;margin:0 auto!important}
+@media(max-width:800px){
+  .brand{justify-content:center!important;width:100%!important;gap:0!important}
+  .brand-wordmark{display:block!important;height:44px!important;max-width:min(86vw,620px)!important;margin:0 auto!important}
+  body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}
+  body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}
+  body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(86vw,340px)!important;max-width:340px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}
+  body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
+  body.mova-mobile-welcome .mobile-auth-tagline{order:3!important}
+}
 
 </style>
 <script id="v146-ai-scan-depth-script">
