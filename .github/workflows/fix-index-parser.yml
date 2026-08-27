@@ -1,0 +1,50 @@
+name: Fix MOVA index parser
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix-index-parser.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix-parser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Remove stray async parser error
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          broken = '\nasync \nconst MOVA_MARKET_CACHE_KEY="mova_market_snapshot_v1";'
+          fixed = '\nconst MOVA_MARKET_CACHE_KEY="mova_market_snapshot_v1";'
+
+          if broken not in text:
+              raise SystemExit('Expected parser error sequence not found; refusing to make an unsafe change.')
+
+          text = text.replace(broken, fixed, 1)
+          text = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v154 PARSER FIX -->', text, count=1)
+          text = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v154-parser-fix"', text, count=1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit parser fix
+        run: |
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix MOVA JavaScript parser error"
+          git push origin main
