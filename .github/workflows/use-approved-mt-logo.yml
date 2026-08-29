@@ -1,0 +1,42 @@
+name: Use approved MT logo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/use-approved-mt-logo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-branding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Point site and app to approved MT monogram
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('mova-approved-icon.png?v=156','mova-approved-mt.svg?v=157')
+          s=s.replace('mova-recovered-app-icon.png','mova-approved-mt.svg?v=157')
+          s=re.sub(r'mova-icon-black-blue\.png(?:\?v=\d+)?','mova-approved-mt.svg?v=157',s)
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v157 APPROVED MT LOGO -->',s,count=1)
+          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v157-approved-mt-logo"',s,count=1)
+          if 'mova-icon-black-blue.png' in s:
+              raise SystemExit('Bull logo reference still present')
+          if 'mova-approved-mt.svg?v=157' not in s:
+              raise SystemExit('Approved MT logo not wired in')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Use approved geometric MT logo across MOVA"
+          git push origin main
