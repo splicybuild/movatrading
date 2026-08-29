@@ -1,0 +1,121 @@
+name: Install redesigned MOVA favicon
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/install-redesigned-favicon.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  install-favicon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate favicon assets
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image, ImageDraw, ImageFilter
+          import math
+
+          S=1024
+          img=Image.new('RGBA',(S,S),(0,0,0,0))
+          d=ImageDraw.Draw(img)
+
+          # MOVA dark tile + electric-blue edge.
+          margin=28
+          radius=170
+          d.rounded_rectangle((margin,margin,S-margin,S-margin),radius=radius,fill=(5,12,24,255),outline=(22,141,255,255),width=10)
+
+          glow=Image.new('RGBA',(S,S),(0,0,0,0))
+          gd=ImageDraw.Draw(glow)
+          gd.rounded_rectangle((margin+12,margin+12,S-margin-12,S-margin-12),radius=radius-10,outline=(0,175,255,110),width=8)
+          glow=glow.filter(ImageFilter.GaussianBlur(18))
+          img=Image.alpha_composite(img,glow)
+          d=ImageDraw.Draw(img)
+
+          # Three rising candlesticks: trading identity without using a letterform.
+          bars=[
+              (220,590,350,770,285,535,825),
+              (405,440,535,700,470,385,755),
+              (590,285,720,620,655,230,675),
+          ]
+          for x1,y1,x2,y2,cx,wy1,wy2 in bars:
+              d.rounded_rectangle((cx-10,wy1,cx+10,wy2),radius=10,fill=(85,216,255,255))
+              d.rounded_rectangle((x1,y1,x2,y2),radius=26,fill=(14,112,255,255))
+              d.rounded_rectangle((x1+12,y1+12,x2-12,y2-12),radius=22,fill=(0,176,255,255))
+              d.rounded_rectangle((x1+25,y1+22,x2-25,y2-22),radius=18,fill=(35,195,255,255))
+
+          def bezier(p0,p1,p2,p3,t):
+              u=1-t
+              return (
+                  u**3*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t**3*p3[0],
+                  u**3*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t**3*p3[1]
+              )
+
+          # Green upward growth sweep.
+          p0=(150,780); p1=(390,760); p2=(635,610); p3=(800,365)
+          pts=[bezier(p0,p1,p2,p3,i/80) for i in range(81)]
+          g2=Image.new('RGBA',(S,S),(0,0,0,0))
+          g2d=ImageDraw.Draw(g2)
+          g2d.line(pts,fill=(76,255,40,130),width=48,joint='curve')
+          g2=g2.filter(ImageFilter.GaussianBlur(20))
+          img=Image.alpha_composite(img,g2)
+          d=ImageDraw.Draw(img)
+          d.line(pts,fill=(77,239,49,255),width=34,joint='curve')
+
+          x2,y2=pts[-2]; x3,y3=pts[-1]
+          ang=math.atan2(y3-y2,x3-x2)
+          L=125; W=85
+          tip=(x3,y3)
+          base=(x3-L*math.cos(ang),y3-L*math.sin(ang))
+          perp=(-math.sin(ang),math.cos(ang))
+          a=(base[0]+W*.5*perp[0],base[1]+W*.5*perp[1])
+          b=(base[0]-W*.5*perp[0],base[1]-W*.5*perp[1])
+          d.polygon([tip,a,b],fill=(77,239,49,255))
+
+          master=img.resize((512,512),Image.Resampling.LANCZOS)
+          master.save('mova-favicon-512.png','PNG',optimize=True)
+          for size,name in [(180,'mova-favicon-180.png'),(32,'mova-favicon-32.png'),(16,'mova-favicon-16.png')]:
+              master.resize((size,size),Image.Resampling.LANCZOS).save(name,'PNG',optimize=True)
+          PY
+
+      - name: Wire favicon only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+
+          # Replace only browser/touch icon declarations; leave header wordmark untouched.
+          s=re.sub(r'<link rel="apple-touch-icon"[^>]*>', '<link rel="apple-touch-icon" sizes="180x180" href="mova-favicon-180.png?v=168">', s)
+          s=re.sub(r'<link rel="icon" type="image/png" sizes="32x32"[^>]*>', '<link rel="icon" type="image/png" sizes="32x32" href="mova-favicon-32.png?v=168">', s)
+          s=re.sub(r'<link rel="icon" type="image/png" sizes="16x16"[^>]*>', '<link rel="icon" type="image/png" sizes="16x16" href="mova-favicon-16.png?v=168">', s)
+          s=re.sub(r'<link rel="shortcut icon"[^>]*>', '<link rel="shortcut icon" type="image/png" href="mova-favicon-32.png?v=168">', s)
+
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v168 REDESIGNED FAVICON -->', s, count=1)
+          s=re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v168-redesigned-favicon"', s, count=1)
+
+          if 'MOVA-wordmarklogo-display.png?v=162' not in s:
+              raise SystemExit('Header wordmark reference unexpectedly changed')
+          for expected in ['mova-favicon-180.png?v=168','mova-favicon-32.png?v=168','mova-favicon-16.png?v=168']:
+              if expected not in s:
+                  raise SystemExit(f'Missing favicon reference: {expected}')
+
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Commit favicon change
+        run: |
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html mova-favicon-512.png mova-favicon-180.png mova-favicon-32.png mova-favicon-16.png
+          git commit -m "Install redesigned MOVA trading favicon"
+          git push origin main
