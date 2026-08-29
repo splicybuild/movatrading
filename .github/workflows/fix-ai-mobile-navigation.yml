@@ -1,0 +1,174 @@
+name: Fix MOVA AI mobile navigation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix-ai-mobile-navigation.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-mobile-ai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Keep bottom navigation and close control visible on mobile
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path=Path('scripts/build.mjs')
+          s=path.read_text(encoding='utf-8')
+          marker='/* MOVA AI MOBILE NAV FIX v177 */'
+          if marker in s:
+              print('mobile AI nav patch already present')
+              raise SystemExit(0)
+
+          patch = r'''
+
+const mobileAiNavPatch = String.raw`
+<style id="mova-ai-mobile-nav-v177">
+@media(max-width:800px){
+  /* Keep the permanent MOVA bottom dock available while Ask MOVA AI is open. */
+  .mova-ai-modal{
+    top:0!important;
+    right:0!important;
+    left:0!important;
+    bottom:calc(78px + env(safe-area-inset-bottom))!important;
+    height:auto!important;
+    z-index:2147483600!important;
+    padding:max(8px,env(safe-area-inset-top)) 8px 0!important;
+    align-items:stretch!important;
+    justify-content:center!important;
+  }
+  body.mova-ai-modal-open .nav{
+    display:grid!important;
+    position:fixed!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    width:100%!important;
+    z-index:2147483647!important;
+    pointer-events:auto!important;
+    visibility:visible!important;
+    opacity:1!important;
+  }
+  .mova-ai-dialog{
+    width:100%!important;
+    height:100%!important;
+    max-height:none!important;
+    min-height:0!important;
+    margin:0!important;
+    border-radius:18px 18px 0 0!important;
+  }
+  .mova-ai-dialog-head{
+    position:relative!important;
+    z-index:20!important;
+    flex:0 0 auto!important;
+    min-height:66px!important;
+    padding:13px 14px 11px!important;
+    background:#0a141e!important;
+    border-bottom:1px solid rgba(255,255,255,.08)!important;
+  }
+  .mova-ai-dialog-brand{min-width:0!important}
+  .mova-ai-dialog-head h2{font-size:18px!important}
+  .mova-ai-dialog-head p{font-size:9px!important;white-space:normal!important}
+  .mova-ai-close{
+    display:grid!important;
+    place-items:center!important;
+    position:relative!important;
+    z-index:30!important;
+    flex:0 0 42px!important;
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+    margin:0!important;
+    border:1px solid rgba(98,200,255,.28)!important;
+    border-radius:12px!important;
+    background:#0b1a25!important;
+    color:#d7e6ef!important;
+    font-size:25px!important;
+    line-height:1!important;
+    visibility:visible!important;
+    opacity:1!important;
+    pointer-events:auto!important;
+  }
+  .mova-ai-suggestion-wrap{
+    flex:0 0 auto!important;
+    padding:9px 14px 6px!important;
+  }
+  .mova-ai-dialog .mova-ai-thread{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    padding:10px 14px 14px!important;
+  }
+  .mova-ai-composer{
+    position:relative!important;
+    z-index:15!important;
+    flex:0 0 auto!important;
+    padding:10px 14px!important;
+    background:#08121a!important;
+  }
+  .mova-ai-footer-note{
+    flex:0 0 auto!important;
+    padding:0 14px 9px!important;
+    margin:0!important;
+  }
+}
+</style>
+<script id="mova-ai-mobile-nav-v177-js">
+(function(){
+  function ensureMovaAiClose(){
+    const head=document.querySelector('#movaAiModal .mova-ai-dialog-head');
+    if(!head)return;
+    let close=head.querySelector('.mova-ai-close');
+    if(!close){
+      close=document.createElement('button');
+      close.type='button';
+      close.className='mova-ai-close';
+      head.appendChild(close);
+    }
+    close.textContent='×';
+    close.setAttribute('aria-label','Close MOVA AI');
+    close.onclick=function(ev){ev.preventDefault();ev.stopPropagation();if(typeof window.movaAiCloseModal==='function')window.movaAiCloseModal();return false;};
+  }
+
+  const priorOpen=window.movaAiOpenModal;
+  if(typeof priorOpen==='function'){
+    window.movaAiOpenModal=function(prefill=''){
+      const out=priorOpen(prefill);
+      ensureMovaAiClose();
+      return out;
+    };
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureMovaAiClose);
+  else ensureMovaAiClose();
+})();
+</script>
+<!-- MOVA AI MOBILE NAV FIX v177 -->
+`;
+
+appendFileSync('dist/index.html', mobileAiNavPatch, 'utf8');
+'''
+          path.write_text(s+patch,encoding='utf-8')
+          PY
+
+      - name: Commit runtime mobile fix
+        run: |
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add scripts/build.mjs
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "Keep MOVA AI mobile nav and close button visible"
+            git push origin main
+          fi
