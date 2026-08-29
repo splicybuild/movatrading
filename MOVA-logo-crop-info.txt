@@ -1,0 +1,6 @@
+original=1254x1254
+background=(0, 0, 0)
+threshold=18
+bbox=(0, 331, 1254, 869)
+display=1254x538
+aspect=2.331
