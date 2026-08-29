@@ -1,4 +1,4 @@
-name: Install exact MOVA uploaded logo
+name: Resize exact MOVA uploaded logo
 
 on:
   push:
@@ -11,33 +11,48 @@ permissions:
   contents: write
 
 jobs:
-  update-branding:
+  resize-branding:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Point all active branding to exact uploaded PNG
+      - name: Enlarge desktop and mobile MOVA logo
         run: |
           test -f MOVA-wordmarklogo.png
           python - <<'PY'
           from pathlib import Path
           import re
+
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          logo='MOVA-wordmarklogo.png?v=159'
-          s=re.sub(r'mova-approved-wordmark\.png(?:\?v=\d+)?',logo,s)
-          s=re.sub(r'mova-approved-mt\.svg(?:\?v=\d+)?',logo,s)
-          s=re.sub(r'mova-approved-icon\.png(?:\?v=\d+)?',logo,s)
-          s=re.sub(r'mova-icon-black-blue\.png(?:\?v=\d+)?',logo,s)
-          s=re.sub(r'\s*<img[^>]*class="brand-app-icon"[^>]*>\s*','\n',s,flags=re.I)
-          s=s.replace('const source=document.querySelector(".brand-app-icon");','const source=document.querySelector(".brand-wordmark");')
-          s=re.sub(r'(<img[^>]*class="brand-wordmark"[^>]*src=")[^"]+("[^>]*>)',lambda m:m.group(1)+logo+m.group(2),s,count=1,flags=re.I)
-          s=s.replace('mova-approved-wordmark.png?v=158',logo)
-          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v159 EXACT UPLOADED LOGO -->',s,count=1)
-          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v159-exact-uploaded-logo"',s,count=1)
+
+          # Desktop: size the square-canvas artwork by width so the visible wordmark is much larger.
+          s=re.sub(
+              r'header \.brand-wordmark\{display:block!important;height:[^;]+;width:[^;]+;max-width:[^;]+;object-fit:contain!important;object-position:left center!important;margin:0!important\}',
+              'header .brand-wordmark{display:block!important;height:auto!important;width:min(36vw,430px)!important;max-width:430px!important;object-fit:contain!important;object-position:left center!important;margin:0!important}',
+              s,
+              count=1
+          )
+
+          # Mobile: a modest increase over the previous 72vw / 330px size.
+          s=s.replace(
+              'header .brand-wordmark{display:block!important;height:auto!important;width:min(72vw,330px)!important;max-width:330px!important;object-fit:contain!important;margin:0 auto!important}',
+              'header .brand-wordmark{display:block!important;height:auto!important;width:min(80vw,370px)!important;max-width:370px!important;object-fit:contain!important;margin:0 auto!important}'
+          )
+          s=s.replace(
+              'body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(72vw,330px)!important;max-width:330px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}',
+              'body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(80vw,370px)!important;max-width:370px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}'
+          )
+
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v160 LARGER EXACT LOGO -->',s,count=1)
+          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v160-larger-exact-logo"',s,count=1)
+
           if 'MOVA-wordmarklogo.png?v=159' not in s:
-              raise SystemExit('exact logo reference missing')
-          if 'mova-approved-mt.svg' in s or 'mova-icon-black-blue.png' in s:
-              raise SystemExit('incorrect logo reference remains')
+              raise SystemExit('exact uploaded logo reference missing')
+          if 'width:min(36vw,430px)!important' not in s:
+              raise SystemExit('desktop logo size update missing')
+          if 'width:min(80vw,370px)!important' not in s:
+              raise SystemExit('mobile logo size update missing')
+
           p.write_text(s,encoding='utf-8')
           PY
       - name: Commit
@@ -45,5 +60,5 @@ jobs:
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
           git add index.html
-          git commit -m "Use exact uploaded MOVA wordmark logo everywhere"
+          git commit -m "Enlarge exact MOVA logo on desktop and mobile"
           git push origin main
