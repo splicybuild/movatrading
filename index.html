@@ -7,8 +7,8 @@
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <meta content="#070b10" name="theme-color"/>
 <title>MOVA TRADING</title>
-<link rel="icon" type="image/png" href="mova-approved-mt.svg?v=157"/>
-<link rel="apple-touch-icon" href="mova-approved-mt.svg?v=157"/>
+<link rel="icon" type="image/png" href="mova-approved-wordmark.png?v=158"/>
+<link rel="apple-touch-icon" href="mova-approved-wordmark.png?v=158"/>
 <style>
     :root{
       --bg:#070b10; --panel:#0d131b; --panel2:#111a24; --line:#1d2a38;
@@ -3152,35 +3152,31 @@ main > section.page.active{display:block !important}
 </style>
 
 <!-- v150 external branding assets: intentionally last so these win over legacy favicon declarations -->
-<link rel="icon" type="image/png" href="mova-approved-mt.svg?v=157">
-<link rel="shortcut icon" type="image/png" href="mova-approved-mt.svg?v=157">
-<link rel="apple-touch-icon" href="mova-approved-mt.svg?v=157">
+<link rel="icon" type="image/png" href="mova-approved-wordmark.png?v=158">
+<link rel="shortcut icon" type="image/png" href="mova-approved-wordmark.png?v=158">
+<link rel="apple-touch-icon" href="mova-approved-wordmark.png?v=158">
 
 
-<style id="v156-approved-branding">
-header .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:10px!important;flex:0 0 auto!important}
-header .brand-app-icon{display:block!important;width:58px!important;height:58px!important;flex:0 0 58px!important;object-fit:contain!important;border-radius:0!important;margin:0!important;box-shadow:none!important}
-header .brand-wordmark{display:block!important;height:52px!important;width:auto!important;max-width:min(40vw,520px)!important;object-fit:contain!important;object-position:left center!important;margin:0!important}
-header .mova-brand-copy{display:none!important}
+<style id="v158-single-logo-source">
+header .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:0!important;flex:0 0 auto!important}
+header .brand-app-icon,header .mova-brand-copy{display:none!important}
+header .brand-wordmark{display:block!important;height:58px!important;width:auto!important;max-width:min(46vw,540px)!important;object-fit:contain!important;object-position:left center!important;margin:0!important}
 @media(max-width:800px){
- header .brand{justify-content:center!important;width:auto!important;gap:0!important}
- header .brand-app-icon{display:block!important;width:54px!important;height:54px!important;flex:0 0 54px!important;object-fit:contain!important;margin:0!important}
- header .brand-wordmark{display:none!important}
- body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}
- body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}
- body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(34vw,128px)!important;max-width:128px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}
- body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
- body.mova-mobile-welcome .mobile-auth-tagline{order:3!important}
+  header .brand{justify-content:center!important;width:100%!important;gap:0!important}
+  header .brand-wordmark{display:block!important;height:auto!important;width:min(72vw,330px)!important;max-width:330px!important;object-fit:contain!important;margin:0 auto!important}
+  body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}
+  body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}
+  body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(72vw,330px)!important;max-width:330px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}
+  body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
+  body.mova-mobile-welcome .mobile-auth-tagline{order:3!important}
 }
 </style>
-
 </head>
-<!-- MOVA BUILD v157 APPROVED MT LOGO -->
-<body data-mova-build="v157-approved-mt-logo">
+<!-- MOVA BUILD v158 SINGLE LOGO SOURCE -->
+<body data-mova-build="v158-single-logo-source">
 <div class="app">
 <header>
 <div aria-label="Go to Home" class="brand" id="brandHome" onclick="return showPage('home')" role="button" style="cursor:pointer" tabindex="0">
-<img alt="MOVA icon" class="brand-app-icon" src="mova-approved-mt.svg?v=157">
 <img alt="MOVA TRADING" class="brand-wordmark" src="mova-approved-wordmark.png?v=156">
 </div>
 
@@ -5710,7 +5706,7 @@ function isMovaMobile(){
 function syncMobileAuthLogo(){
   const target=document.getElementById("mobileAuthLogo");
   if(!target)return;
-  const source=document.querySelector(".brand-app-icon");
+  const source=document.querySelector(".brand-wordmark");
   if(source?.src)target.src=source.src;
 }
 function setMobileWelcomeMode(enabled){
