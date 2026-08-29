@@ -1,4 +1,4 @@
-name: Extract exact desktop MOVA favicon from wordmark
+name: Extract exact desktop MOVA favicon positionally
 
 on:
   push:
@@ -16,147 +16,88 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract exact blue A and green arrow pixels from wordmark
+      - name: Crop exact A and arrow region from original wordmark
         run: |
           test -f MOVA-wordmarklogo.png
           test -f apple-touch-icon.png
-          python -m pip install --quiet pillow numpy opencv-python-headless
+          python -m pip install --quiet pillow
           python - <<'PY'
-          from PIL import Image
-          import numpy as np
-          import cv2
+          from PIL import Image, ImageChops
           from pathlib import Path
 
-          src = Path('MOVA-wordmarklogo.png')
-          img = Image.open(src).convert('RGBA')
-          arr = np.array(img)
-          rgb = arr[:, :, :3]
-          alpha = arr[:, :, 3]
-          h, w = rgb.shape[:2]
+          src=Path('MOVA-wordmarklogo.png')
+          img=Image.open(src).convert('RGBA')
+          w,h=img.size
 
-          # Convert the uploaded logo itself to HSV only to identify the existing
-          # blue/green brand pixels. Output pixels come from the original PNG unchanged.
-          hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
-          H, S, V = hsv[:, :, 0], hsv[:, :, 1], hsv[:, :, 2]
+          # Positional crop of the right-hand main mark only.
+          # This intentionally excludes the silver V to the left and all lower text.
+          box=(int(w*0.64), int(h*0.25), int(w*0.97), int(h*0.62))
+          mark=img.crop(box)
 
-          # OpenCV hue scale: blue/cyan ~ 85-135, green ~ 35-85.
-          blue = (H >= 82) & (H <= 135) & (S >= 85) & (V >= 55)
-          green = (H >= 32) & (H <= 88) & (S >= 80) & (V >= 55)
-          colour = (blue | green) & (alpha > 10)
+          # Trim only surrounding background/transparent padding while preserving source pixels.
+          rgba=mark.convert('RGBA')
+          alpha=rgba.getchannel('A')
+          if alpha.getbbox():
+              # If source is transparent, crop directly to alpha bounds first.
+              mark=rgba.crop(alpha.getbbox())
+          else:
+              mark=rgba
 
-          # Only the upper main-logo region may contribute. This explicitly excludes
-          # the TRADING/tagline lettering beneath the principal MOVA mark.
-          colour[int(h * 0.64):, :] = False
+          # For opaque canvases, trim against corner background colour.
+          rgb=mark.convert('RGB')
+          mw,mh=rgb.size
+          corners=[rgb.getpixel((0,0)),rgb.getpixel((mw-1,0)),rgb.getpixel((0,mh-1)),rgb.getpixel((mw-1,mh-1))]
+          bg=tuple(sum(c[i] for c in corners)//4 for i in range(3))
+          diff=ImageChops.difference(rgb,Image.new('RGB',rgb.size,bg)).convert('L')
+          bbox=diff.point(lambda p:255 if p>18 else 0).getbbox()
+          if bbox:
+              x0,y0,x1,y1=bbox
+              px=max(4,int((x1-x0)*0.04)); py=max(4,int((y1-y0)*0.04))
+              bbox=(max(0,x0-px),max(0,y0-py),min(mark.width,x1+px),min(mark.height,y1+py))
+              mark=mark.crop(bbox)
 
-          raw = (colour.astype(np.uint8) * 255)
+          # The favicon artwork is still the original pixels; only resized for favicon output.
+          size=512
+          canvas=Image.new('RGBA',(size,size),(5,11,18,255))
+          scale=min(430/mark.width,430/mark.height)
+          resized=mark.resize((max(1,int(mark.width*scale)),max(1,int(mark.height*scale))),Image.Resampling.LANCZOS)
+          canvas.alpha_composite(resized,((size-resized.width)//2,(size-resized.height)//2))
 
-          # Temporarily connect neighbouring pixels so the A/arrow can be identified
-          # as the dominant coloured mark. This mask is for selection only.
-          kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
-          joined = cv2.morphologyEx(raw, cv2.MORPH_CLOSE, kernel, iterations=2)
-          joined = cv2.dilate(joined, np.ones((5,5), np.uint8), iterations=1)
+          canvas.save('mova-desktop-favicon-exact2.png','PNG',optimize=True)
+          canvas.resize((32,32),Image.Resampling.LANCZOS).save('mova-desktop-favicon-exact2-32.png','PNG',optimize=True)
+          canvas.resize((16,16),Image.Resampling.LANCZOS).save('mova-desktop-favicon-exact2-16.png','PNG',optimize=True)
+          canvas.save('mova-desktop-favicon-exact2.ico',format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
 
-          n, labels, stats, centroids = cv2.connectedComponentsWithStats(joined, 8)
-          candidates = []
-          for i in range(1, n):
-              x, y, bw, bh, area = stats[i]
-              cx, cy = centroids[i]
-              if area < max(120, int(w*h*0.00012)):
-                  continue
-              if cy > h * 0.62:
-                  continue
-              candidates.append((area, i, x, y, bw, bh, cx, cy))
-
-          if not candidates:
-              raise SystemExit('Could not identify coloured MOVA A/arrow components')
-
-          candidates.sort(reverse=True)
-          # Keep every substantial component near the dominant right-side coloured mark.
-          largest = candidates[0]
-          _, li, lx, ly, lbw, lbh, lcx, lcy = largest
-          selected_ids = []
-          for area, i, x, y, bw, bh, cx, cy in candidates:
-              near = (x < lx + lbw*1.9 and x+bw > lx-lbw*1.2 and y < ly+lbh*1.8 and y+bh > ly-lbh*1.0)
-              substantial = area >= largest[0] * 0.06
-              if near and substantial:
-                  selected_ids.append(i)
-
-          selection = np.isin(labels, selected_ids)
-          # Apply selection to the original colour mask, preserving exact source pixels.
-          exact_mask = colour & cv2.dilate(selection.astype(np.uint8), np.ones((7,7),np.uint8), iterations=1).astype(bool)
-
-          ys, xs = np.where(exact_mask)
-          if len(xs) < 200:
-              raise SystemExit('Exact MOVA favicon extraction produced too few pixels')
-
-          x0, x1 = xs.min(), xs.max()+1
-          y0, y1 = ys.min(), ys.max()+1
-          pad_x = max(8, int((x1-x0)*0.08))
-          pad_y = max(8, int((y1-y0)*0.08))
-          x0, y0 = max(0,x0-pad_x), max(0,y0-pad_y)
-          x1, y1 = min(w,x1+pad_x), min(h,y1+pad_y)
-
-          crop_rgb = rgb[y0:y1, x0:x1].copy()
-          crop_mask = exact_mask[y0:y1, x0:x1]
-          crop_alpha = np.where(crop_mask, alpha[y0:y1, x0:x1], 0).astype(np.uint8)
-          crop = np.dstack([crop_rgb, crop_alpha])
-          mark = Image.fromarray(crop, 'RGBA')
-
-          # Tighten transparent bounds; still no pixel recreation or recolouring.
-          bbox = mark.getchannel('A').getbbox()
-          if not bbox:
-              raise SystemExit('No exact extracted pixels remain')
-          mark = mark.crop(bbox)
-
-          # Place the exact extracted mark on MOVA's existing dark UI background.
-          size = 512
-          canvas = Image.new('RGBA', (size,size), (5,11,18,255))
-          max_side = 430
-          scale = min(max_side/mark.width, max_side/mark.height)
-          new_size = (max(1,int(mark.width*scale)), max(1,int(mark.height*scale)))
-          mark = mark.resize(new_size, Image.Resampling.LANCZOS)
-          canvas.alpha_composite(mark, ((size-mark.width)//2, (size-mark.height)//2))
-
-          canvas.save('mova-desktop-favicon-exact.png', 'PNG', optimize=True)
-          canvas.resize((32,32), Image.Resampling.LANCZOS).save('mova-desktop-favicon-exact-32.png','PNG',optimize=True)
-          canvas.resize((16,16), Image.Resampling.LANCZOS).save('mova-desktop-favicon-exact-16.png','PNG',optimize=True)
-          canvas.save('mova-desktop-favicon-exact.ico', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
-
-          Path('MOVA-desktop-favicon-extraction.txt').write_text(
-              f'source={w}x{h}\nselected_components={selected_ids}\nsource_bbox={(x0,y0,x1,y1)}\nmark={mark.width}x{mark.height}\n',
-              encoding='utf-8'
-          )
-          print(Path('MOVA-desktop-favicon-extraction.txt').read_text())
+          Path('MOVA-desktop-favicon-position.txt').write_text(
+              f'source={w}x{h}\nsource_crop={box}\nfinal_mark={mark.width}x{mark.height}\n',encoding='utf-8')
+          print(Path('MOVA-desktop-favicon-position.txt').read_text())
           PY
 
-      - name: Wire exact desktop favicon only
+      - name: Wire desktop favicon only
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
 
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
+          s=re.sub(r'\s*<link[^>]+rel=["\'](?:icon|shortcut icon)["\'][^>]*>\s*','\n',s,flags=re.I)
+          links='''\n<link rel="icon" type="image/png" sizes="32x32" href="mova-desktop-favicon-exact2-32.png?v=166">\n<link rel="icon" type="image/png" sizes="16x16" href="mova-desktop-favicon-exact2-16.png?v=166">\n<link rel="shortcut icon" href="mova-desktop-favicon-exact2.ico?v=166">\n'''
+          s=s.replace('</head>',links+'\n</head>',1)
 
-          # Remove browser favicon declarations only. Apple/mobile touch icon is untouched.
-          s = re.sub(r'\s*<link[^>]+rel=["\'](?:icon|shortcut icon)["\'][^>]*>\s*', '\n', s, flags=re.I)
-          links = '''\n<link rel="icon" type="image/png" sizes="32x32" href="mova-desktop-favicon-exact-32.png?v=165">\n<link rel="icon" type="image/png" sizes="16x16" href="mova-desktop-favicon-exact-16.png?v=165">\n<link rel="shortcut icon" href="mova-desktop-favicon-exact.ico?v=165">\n'''
-          s = s.replace('</head>', links + '\n</head>', 1)
-
+          # Do not touch the mobile/Apple icon until desktop is approved.
           if 'apple-touch-icon.png?v=163' not in s:
-              raise SystemExit('Mobile/Apple favicon was changed; aborting')
-          if 'mova-desktop-favicon-exact-32.png?v=165' not in s:
-              raise SystemExit('Exact desktop favicon link missing')
+              raise SystemExit('Apple/mobile icon changed; aborting')
 
-          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v165 EXACT DESKTOP FAVICON -->', s, count=1)
-          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v165-exact-desktop-favicon"', s, count=1)
-          p.write_text(s, encoding='utf-8')
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v166 POSITIONAL DESKTOP FAVICON -->',s,count=1)
+          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v166-positional-desktop-favicon"',s,count=1)
+          p.write_text(s,encoding='utf-8')
           PY
 
-      - name: Commit exact desktop favicon
+      - name: Commit desktop favicon
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html mova-desktop-favicon-exact.png mova-desktop-favicon-exact-32.png mova-desktop-favicon-exact-16.png mova-desktop-favicon-exact.ico MOVA-desktop-favicon-extraction.txt
-          git commit -m "Use exact wordmark A and arrow for desktop favicon"
+          git add index.html mova-desktop-favicon-exact2.png mova-desktop-favicon-exact2-32.png mova-desktop-favicon-exact2-16.png mova-desktop-favicon-exact2.ico MOVA-desktop-favicon-position.txt
+          git commit -m "Refine desktop favicon to exact A and arrow region"
           git push origin main
