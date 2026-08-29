@@ -1,3 +1,0 @@
-source=1254x1254
-source_crop=(802, 313, 1216, 777)
-final_mark=414x394

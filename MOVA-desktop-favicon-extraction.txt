@@ -1,4 +1,0 @@
-source=1254x1254
-selected_components=[1, 4, 13, 16, 15, 11, 14, 3, 12]
-source_bbox=(0, np.int64(342), 1254, np.int64(772))
-mark=430x131

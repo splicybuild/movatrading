@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">MOVA Trading MT monogram</title>
-  <desc id="desc">Geometric angular M and T monogram in white on transparent background.</desc>
-  <g fill="#ffffff">
-    <path d="M72 364V156l92-76 92 92 92-92 92 76v208h-72V190l-20-16-92 92-92-92-20 16v174H72z"/>
-    <path d="M208 126h232v72H328v166h-72V198h-48v-72z"/>
-  </g>
-</svg>
