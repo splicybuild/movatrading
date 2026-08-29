@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Crop transparent padding from exact uploaded logo
         run: |
           test -f MOVA-wordmarklogo.png
@@ -23,74 +22,36 @@ jobs:
           python - <<'PY'
           from PIL import Image
           from pathlib import Path
-
-          src = Path('MOVA-wordmarklogo.png')
-          out = Path('MOVA-wordmarklogo-cropped.png')
-
-          img = Image.open(src).convert('RGBA')
-          alpha = img.getchannel('A')
-          bbox = alpha.getbbox()
+          src=Path('MOVA-wordmarklogo.png')
+          out=Path('MOVA-wordmarklogo-cropped.png')
+          img=Image.open(src).convert('RGBA')
+          bbox=img.getchannel('A').getbbox()
           if not bbox:
               raise SystemExit('Logo image contains no visible pixels')
-
-          # Remove transparent canvas only. The logo artwork itself is unchanged.
-          cropped = img.crop(bbox)
-          cropped.save(out, 'PNG', optimize=True)
-          print(f'Original size: {img.size}; visible bounds: {bbox}; cropped size: {cropped.size}')
+          img.crop(bbox).save(out,'PNG',optimize=True)
+          print('Original:',img.size,'visible:',bbox,'cropped:',Image.open(out).size)
           PY
-
       - name: Use cropped logo and remove duplicate mobile tagline
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          logo = 'MOVA-wordmarklogo-cropped.png?v=161'
-
-          # Use the cropped exact logo for the active header and mobile/login branding.
-          s = re.sub(r'MOVA-wordmarklogo(?:-cropped)?\.png(?:\?v=\d+)?', logo, s)
-          s = re.sub(r'(<img[^>]*class="brand-wordmark"[^>]*src=")[^"]+("[^>]*>)', lambda m: m.group(1)+logo+m.group(2), s, count=1, flags=re.I)
-
-          # Replace the final branding block with sizes based on the visible artwork.
-          s = re.sub(r'<style id="v158-single-logo-source">.*?</style>\s*', '', s, count=1, flags=re.S)
-          css = '''<style id="v161-readable-logo">
-header .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:0!important;flex:0 0 auto!important}
-header .brand-app-icon,header .mova-brand-copy{display:none!important}
-header .brand-wordmark{display:block!important;width:min(44vw,560px)!important;max-width:560px!important;height:auto!important;object-fit:contain!important;object-position:left center!important;margin:0!important}
-@media(max-width:800px){
-  header .brand{justify-content:center!important;width:100%!important;gap:0!important}
-  header .brand-wordmark{display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;margin:0 auto!important}
-  body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}
-  body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}
-  body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 8px!important;box-shadow:none!important}
-  body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
-  body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}
-}
-</style>'''
-          s = s.replace('</head>', css + '\n</head>', 1)
-
-          # Mobile JS should continue to copy the same exact desktop wordmark source.
-          s = s.replace('const source=document.querySelector(".brand-app-icon");',
-                        'const source=document.querySelector(".brand-wordmark");')
-
-          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v161 READABLE CROPPED LOGO -->', s, count=1)
-          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v161-readable-cropped-logo"', s, count=1)
-
-          checks = [
-              logo,
-              'width:min(44vw,560px)!important',
-              'width:min(90vw,420px)!important',
-              'body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}'
-          ]
-          for item in checks:
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          logo='MOVA-wordmarklogo-cropped.png?v=161'
+          s=re.sub(r'MOVA-wordmarklogo(?:-cropped)?\.png(?:\?v=\d+)?',logo,s)
+          s=re.sub(r'<style id="v158-single-logo-source">.*?</style>\s*','',s,count=1,flags=re.S)
+          s=re.sub(r'<style id="v161-readable-logo">.*?</style>\s*','',s,count=1,flags=re.S)
+          css='\n<style id="v161-readable-logo">\nheader .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:0!important;flex:0 0 auto!important}\nheader .brand-app-icon,header .mova-brand-copy{display:none!important}\nheader .brand-wordmark{display:block!important;width:min(44vw,560px)!important;max-width:560px!important;height:auto!important;object-fit:contain!important;object-position:left center!important;margin:0!important}\n@media(max-width:800px){header .brand{justify-content:center!important;width:100%!important;gap:0!important}header .brand-wordmark{display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;margin:0 auto!important}body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 8px!important;box-shadow:none!important}body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}}\n</style>\n'
+          s=s.replace('</head>',css+'</head>',1)
+          s=s.replace('const source=document.querySelector(".brand-app-icon");','const source=document.querySelector(".brand-wordmark");')
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v161 READABLE CROPPED LOGO -->',s,count=1)
+          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v161-readable-cropped-logo"',s,count=1)
+          for item in (logo,'width:min(44vw,560px)!important','width:min(90vw,420px)!important','mobile-auth-tagline{display:none!important}'):
               if item not in s:
-                  raise SystemExit(f'Missing expected branding update: {item}')
-
-          p.write_text(s, encoding='utf-8')
+                  raise SystemExit('Missing expected branding update: '+item)
+          p.write_text(s,encoding='utf-8')
           PY
-
       - name: Commit readable logo update
         run: |
           git config user.name "mova-build-bot"
