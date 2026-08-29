@@ -1,8 +1,9 @@
-name: Install exact uploaded MOVA logo
+name: Install exact MOVA uploaded logo
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '.github/workflows/fix-mova-header-composition.yml'
 
@@ -10,89 +11,39 @@ permissions:
   contents: write
 
 jobs:
-  install-logo:
+  update-branding:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Wire exact uploaded logo into desktop and mobile
-        shell: bash
+      - name: Point all active branding to exact uploaded PNG
         run: |
           test -f MOVA-wordmarklogo.png
-          python3 <<'PY'
+          python - <<'PY'
           from pathlib import Path
           import re
-
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          logo = 'MOVA-wordmarklogo.png?v=159'
-
-          # Replace every active branding asset reference with the exact PNG uploaded by the user.
-          s = re.sub(r'mova-approved-wordmark\.png(?:\?v=\d+)?', logo, s)
-          s = re.sub(r'mova-approved-mt\.svg(?:\?v=\d+)?', logo, s)
-          s = re.sub(r'mova-approved-icon\.png(?:\?v=\d+)?', logo, s)
-          s = re.sub(r'mova-icon-black-blue\.png(?:\?v=\d+)?', logo, s)
-
-          # Keep a single header logo and make mobile/login inherit that same source.
-          s = re.sub(r'\s*<img[^>]*class="brand-app-icon"[^>]*>\s*', '\n', s, flags=re.I)
-          s = s.replace('const source=document.querySelector(".brand-app-icon");',
-                        'const source=document.querySelector(".brand-wordmark");')
-
-          # Ensure the visible header wordmark references the exact uploaded file.
-          s = re.sub(
-              r'(<img[^>]*class="brand-wordmark"[^>]*src=")[^"]+("[^>]*>)',
-              r'\1' + logo + r'\2', s, count=1, flags=re.I
-          )
-
-          # Replace previous branding locks with one exact-file lock.
-          s = re.sub(r'<style id="v156-approved-branding">.*?</style>\s*', '', s, flags=re.S)
-          s = re.sub(r'<style id="v158-single-logo-source">.*?</style>\s*', '', s, flags=re.S)
-          s = re.sub(r'<style id="v159-exact-uploaded-logo">.*?</style>\s*', '', s, flags=re.S)
-
-          css = '''<style id="v159-exact-uploaded-logo">
-header .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:0!important;flex:0 0 auto!important}
-header .brand-app-icon,header .mova-brand-copy{display:none!important}
-header .brand-wordmark{display:block!important;height:62px!important;width:auto!important;max-width:min(46vw,540px)!important;object-fit:contain!important;object-position:left center!important;margin:0!important}
-@media(max-width:800px){
-  header .brand{justify-content:center!important;width:100%!important;gap:0!important}
-  header .brand-wordmark{display:block!important;height:56px!important;width:auto!important;max-width:min(72vw,330px)!important;object-fit:contain!important;margin:0 auto!important}
-  body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}
-  body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}
-  body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(72vw,330px)!important;max-width:330px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}
-  body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
-  body.mova-mobile-welcome .mobile-auth-tagline{order:3!important}
-}
-</style>'''
-          s = s.replace('</head>', css + '\n</head>', 1)
-
-          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->',
-                     '<!-- MOVA BUILD v159 EXACT UPLOADED LOGO -->', s, count=1)
-          s = re.sub(r'data-mova-build="[^"]+"',
-                     'data-mova-build="v159-exact-uploaded-logo"', s, count=1)
-
-          # Hard checks: only the exact uploaded filename may be used for active MOVA branding.
-          required = [
-              'class="brand-wordmark" src="MOVA-wordmarklogo.png?v=159"',
-              'const source=document.querySelector(".brand-wordmark");',
-              'href="MOVA-wordmarklogo.png?v=159"'
-          ]
-          for marker in required:
-              if marker not in s:
-                  raise SystemExit(f'Missing required logo marker: {marker}')
-          for banned in ('mova-approved-mt.svg', 'mova-icon-black-blue.png'):
-              if banned in s:
-                  raise SystemExit(f'Old/incorrect branding reference still present: {banned}')
-
-          p.write_text(s, encoding='utf-8')
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          logo='MOVA-wordmarklogo.png?v=159'
+          s=re.sub(r'mova-approved-wordmark\.png(?:\?v=\d+)?',logo,s)
+          s=re.sub(r'mova-approved-mt\.svg(?:\?v=\d+)?',logo,s)
+          s=re.sub(r'mova-approved-icon\.png(?:\?v=\d+)?',logo,s)
+          s=re.sub(r'mova-icon-black-blue\.png(?:\?v=\d+)?',logo,s)
+          s=re.sub(r'\s*<img[^>]*class="brand-app-icon"[^>]*>\s*','\n',s,flags=re.I)
+          s=s.replace('const source=document.querySelector(".brand-app-icon");','const source=document.querySelector(".brand-wordmark");')
+          s=re.sub(r'(<img[^>]*class="brand-wordmark"[^>]*src=")[^"]+("[^>]*>)',lambda m:m.group(1)+logo+m.group(2),s,count=1,flags=re.I)
+          s=s.replace('mova-approved-wordmark.png?v=158',logo)
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v159 EXACT UPLOADED LOGO -->',s,count=1)
+          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v159-exact-uploaded-logo"',s,count=1)
+          if 'MOVA-wordmarklogo.png?v=159' not in s:
+              raise SystemExit('exact logo reference missing')
+          if 'mova-approved-mt.svg' in s or 'mova-icon-black-blue.png' in s:
+              raise SystemExit('incorrect logo reference remains')
+          p.write_text(s,encoding='utf-8')
           PY
-
-      - name: Commit exact logo wiring
-        shell: bash
+      - name: Commit
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
           git add index.html
-          git commit -m "Use exact uploaded MOVA logo on desktop and mobile"
+          git commit -m "Use exact uploaded MOVA wordmark logo everywhere"
           git push origin main
