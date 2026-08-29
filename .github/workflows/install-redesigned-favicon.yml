@@ -27,7 +27,6 @@ jobs:
           img=Image.new('RGBA',(S,S),(0,0,0,0))
           d=ImageDraw.Draw(img)
 
-          # MOVA dark tile + electric-blue edge.
           margin=28
           radius=170
           d.rounded_rectangle((margin,margin,S-margin,S-margin),radius=radius,fill=(5,12,24,255),outline=(22,141,255,255),width=10)
@@ -39,7 +38,6 @@ jobs:
           img=Image.alpha_composite(img,glow)
           d=ImageDraw.Draw(img)
 
-          # Three rising candlesticks: trading identity without using a letterform.
           bars=[
               (220,590,350,770,285,535,825),
               (405,440,535,700,470,385,755),
@@ -58,7 +56,6 @@ jobs:
                   u**3*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t**3*p3[1]
               )
 
-          # Green upward growth sweep.
           p0=(150,780); p1=(390,760); p2=(635,610); p3=(800,365)
           pts=[bezier(p0,p1,p2,p3,i/80) for i in range(81)]
           g2=Image.new('RGBA',(S,S),(0,0,0,0))
@@ -83,9 +80,12 @@ jobs:
           master.save('mova-favicon-512.png','PNG',optimize=True)
           for size,name in [(180,'mova-favicon-180.png'),(32,'mova-favicon-32.png'),(16,'mova-favicon-16.png')]:
               master.resize((size,size),Image.Resampling.LANCZOS).save(name,'PNG',optimize=True)
+
+          # Replace the old root favicon.ico as well so browsers cannot fall back to stale branding.
+          master.save('favicon.ico',format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
           PY
 
-      - name: Wire favicon only
+      - name: Wire one favicon identity
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -94,18 +94,18 @@ jobs:
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
 
-          # Replace only browser/touch icon declarations; leave header wordmark untouched.
-          s=re.sub(r'<link rel="apple-touch-icon"[^>]*>', '<link rel="apple-touch-icon" sizes="180x180" href="mova-favicon-180.png?v=168">', s)
-          s=re.sub(r'<link rel="icon" type="image/png" sizes="32x32"[^>]*>', '<link rel="icon" type="image/png" sizes="32x32" href="mova-favicon-32.png?v=168">', s)
-          s=re.sub(r'<link rel="icon" type="image/png" sizes="16x16"[^>]*>', '<link rel="icon" type="image/png" sizes="16x16" href="mova-favicon-16.png?v=168">', s)
-          s=re.sub(r'<link rel="shortcut icon"[^>]*>', '<link rel="shortcut icon" type="image/png" href="mova-favicon-32.png?v=168">', s)
+          # Remove all existing favicon/touch icon declarations so the browser has one unambiguous set.
+          s=re.sub(r'\s*<link rel="(?:icon|shortcut icon|apple-touch-icon)"[^>]*>\s*','\n',s,flags=re.I)
 
-          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v168 REDESIGNED FAVICON -->', s, count=1)
-          s=re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v168-redesigned-favicon"', s, count=1)
+          icon_block='''\n<link rel="icon" href="/favicon.ico?v=169" sizes="any">\n<link rel="icon" type="image/png" sizes="32x32" href="/mova-favicon-32.png?v=169">\n<link rel="icon" type="image/png" sizes="16x16" href="/mova-favicon-16.png?v=169">\n<link rel="apple-touch-icon" sizes="180x180" href="/mova-favicon-180.png?v=169">\n'''
+          s=s.replace('</head>',icon_block+'\n</head>',1)
+
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v169 SINGLE FAVICON SOURCE -->', s, count=1)
+          s=re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v169-single-favicon-source"', s, count=1)
 
           if 'MOVA-wordmarklogo-display.png?v=162' not in s:
               raise SystemExit('Header wordmark reference unexpectedly changed')
-          for expected in ['mova-favicon-180.png?v=168','mova-favicon-32.png?v=168','mova-favicon-16.png?v=168']:
+          for expected in ['/favicon.ico?v=169','/mova-favicon-32.png?v=169','/mova-favicon-16.png?v=169','/mova-favicon-180.png?v=169']:
               if expected not in s:
                   raise SystemExit(f'Missing favicon reference: {expected}')
 
@@ -116,6 +116,6 @@ jobs:
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html mova-favicon-512.png mova-favicon-180.png mova-favicon-32.png mova-favicon-16.png
-          git commit -m "Install redesigned MOVA trading favicon"
+          git add index.html favicon.ico mova-favicon-512.png mova-favicon-180.png mova-favicon-32.png mova-favicon-16.png
+          git commit -m "Replace all MOVA favicon sources with redesigned icon"
           git push origin main
