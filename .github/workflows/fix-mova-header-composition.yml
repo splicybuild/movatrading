@@ -1,4 +1,4 @@
-name: Build readable MOVA logo asset
+name: Build MOVA favicon from exact logo
 
 on:
   push:
@@ -11,112 +11,112 @@ permissions:
   contents: write
 
 jobs:
-  readable-logo:
+  favicon:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create background-aware crop from exact uploaded logo
+      - name: Build favicon from the exact MOVA artwork
         run: |
           test -f MOVA-wordmarklogo.png
           python -m pip install --quiet pillow
           python - <<'PY'
-          from PIL import Image, ImageChops
+          from PIL import Image, ImageChops, ImageDraw
           from pathlib import Path
 
           src = Path('MOVA-wordmarklogo.png')
-          out = Path('MOVA-wordmarklogo-display.png')
-          info = Path('MOVA-logo-crop-info.txt')
-
           img = Image.open(src).convert('RGBA')
           rgb = img.convert('RGB')
           w, h = rgb.size
+
+          # Detect the surrounding canvas colour using the four corners.
           corners = [rgb.getpixel((0,0)), rgb.getpixel((w-1,0)), rgb.getpixel((0,h-1)), rgb.getpixel((w-1,h-1))]
           bg = tuple(sum(c[i] for c in corners)//4 for i in range(3))
-          diff = ImageChops.difference(rgb, Image.new('RGB', rgb.size, bg))
+          diff = ImageChops.difference(rgb, Image.new('RGB', rgb.size, bg)).convert('L')
 
-          selected = None
-          selected_t = None
+          bbox = None
           for threshold in (18, 24, 32, 42, 55, 70):
-              mask = diff.convert('L').point(lambda p, t=threshold: 255 if p > t else 0)
-              bbox = mask.getbbox()
-              if not bbox:
-                  continue
-              x0, y0, x1, y1 = bbox
-              bw, bh = x1-x0, y1-y0
-              if bw < w*0.98 or bh < h*0.90:
-                  selected = bbox
-                  selected_t = threshold
-                  break
+              mask = diff.point(lambda p, t=threshold: 255 if p > t else 0)
+              candidate = mask.getbbox()
+              if candidate:
+                  x0,y0,x1,y1 = candidate
+                  if (x1-x0) > w*.30 and (y1-y0) > h*.10:
+                      bbox = candidate
+                      break
+          if not bbox:
+              raise SystemExit('Could not locate MOVA artwork in source logo')
 
-          if selected is None:
-              raise SystemExit('Could not safely distinguish the logo from its surrounding canvas')
+          x0,y0,x1,y1 = bbox
+          visible = img.crop(bbox)
+          vw,vh = visible.size
 
-          x0, y0, x1, y1 = selected
-          bw, bh = x1-x0, y1-y0
-          pad_x = max(12, int(bw*0.04))
-          pad_y = max(12, int(bh*0.08))
-          x0 = max(0, x0-pad_x)
-          y0 = max(0, y0-pad_y)
-          x1 = min(w, x1+pad_x)
-          y1 = min(h, y1+pad_y)
+          # Favicon direction selected for MOVA: isolate the blue A + green growth arrow
+          # from the existing brand artwork, rather than inventing another symbol.
+          # Use the right-hand portion of the main logo area and exclude lower tagline copy.
+          top_h = max(1, int(vh * 0.72))
+          right_x = max(0, int(vw * 0.61))
+          mark = visible.crop((right_x, 0, vw, top_h))
 
-          crop = img.crop((x0,y0,x1,y1))
-          cw, ch = crop.size
-          ratio = cw/ch
-          if ratio < 1.45:
-              raise SystemExit(f'Detected crop is not safely wordmark-shaped: {cw}x{ch} ratio={ratio:.2f}')
+          # Remove empty surrounding pixels within the mark crop against its corner colour.
+          mrgb = mark.convert('RGB')
+          mw,mh = mrgb.size
+          mcorners = [mrgb.getpixel((0,0)), mrgb.getpixel((mw-1,0)), mrgb.getpixel((0,mh-1)), mrgb.getpixel((mw-1,mh-1))]
+          mbg = tuple(sum(c[i] for c in mcorners)//4 for i in range(3))
+          mdiff = ImageChops.difference(mrgb, Image.new('RGB', mrgb.size, mbg)).convert('L')
+          mbbox = mdiff.point(lambda p: 255 if p > 22 else 0).getbbox()
+          if mbbox:
+              mark = mark.crop(mbbox)
 
-          crop.save(out, 'PNG', optimize=True)
-          info.write_text(
-              f'original={w}x{h}\nbackground={bg}\nthreshold={selected_t}\nbbox={(x0,y0,x1,y1)}\ndisplay={cw}x{ch}\naspect={ratio:.3f}\n',
-              encoding='utf-8'
-          )
-          print(info.read_text())
+          # Build a clean dark rounded-square icon consistent with the MOVA UI.
+          size = 512
+          canvas = Image.new('RGBA', (size,size), (0,0,0,0))
+          draw = ImageDraw.Draw(canvas)
+          draw.rounded_rectangle((10,10,size-10,size-10), radius=104, fill=(4,12,25,255), outline=(22,115,220,255), width=5)
+
+          max_w,max_h = 390,390
+          mark.thumbnail((max_w,max_h), Image.Resampling.LANCZOS)
+          px = (size-mark.width)//2
+          py = (size-mark.height)//2
+          canvas.alpha_composite(mark, (px,py))
+          canvas.save('MOVA-favicon.png', 'PNG', optimize=True)
+          canvas.resize((180,180), Image.Resampling.LANCZOS).save('apple-touch-icon.png','PNG',optimize=True)
+          canvas.resize((32,32), Image.Resampling.LANCZOS).save('favicon-32x32.png','PNG',optimize=True)
+          canvas.resize((16,16), Image.Resampling.LANCZOS).save('favicon-16x16.png','PNG',optimize=True)
+          canvas.save('favicon.ico', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+
+          print('source', img.size, 'visible', visible.size, 'mark', mark.size)
           PY
 
-      - name: Make readable logo the final winning rule
+      - name: Wire browser and touch icons only
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          logo = 'MOVA-wordmarklogo-display.png?v=162'
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
 
-          s = re.sub(r'MOVA-wordmarklogo(?:-cropped|-display)?\.png(?:\?v=\d+)?', logo, s)
-          s = re.sub(r'(<img[^>]*class="brand-wordmark"[^>]*src=")[^"]+("[^>]*>)', lambda m: m.group(1)+logo+m.group(2), s, count=1, flags=re.I)
-          s = s.replace('const source=document.querySelector(".brand-app-icon");', 'const source=document.querySelector(".brand-wordmark");')
+          # Remove existing favicon/touch declarations so there is one unambiguous active set.
+          s=re.sub(r'\s*<link[^>]+rel=["\'](?:icon|shortcut icon|apple-touch-icon)["\'][^>]*>\s*','\n',s,flags=re.I)
 
-          s = re.sub(r'\s*<div class="mobile-auth-tagline"[^>]*>.*?</div>\s*', '\n', s, count=1, flags=re.S)
-          s = re.sub(r'<style id="v161-readable-logo">.*?</style>\s*', '', s, count=1, flags=re.S)
-          s = re.sub(r'<style id="v162-final-readable-logo">.*?</style>\s*', '', s, count=1, flags=re.S)
+          links='''\n<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=163">\n<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=163">\n<link rel="shortcut icon" href="favicon.ico?v=163">\n<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=163">\n'''
+          s=s.replace('</head>',links+'\n</head>',1)
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v163 NEW FAVICON -->',s,count=1)
+          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v163-new-favicon"',s,count=1)
 
-          css = '\n<style id="v162-final-readable-logo">\n'
-          css += '@media(min-width:801px){header .brand{min-height:116px!important;overflow:visible!important}header .brand-wordmark{display:block!important;width:min(48vw,620px)!important;max-width:620px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0!important}}\n'
-          css += '@media(max-width:800px){header .brand{min-height:92px!important;overflow:visible!important}header .brand-wordmark{display:block!important;width:min(94vw,460px)!important;max-width:460px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0 auto!important}body.mova-mobile-welcome .mobile-auth-logo{display:block!important;width:min(92vw,440px)!important;max-width:440px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0 auto 8px!important}body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}}\n'
-          css += '</style>\n'
+          # Header must continue to use the wordmark, not the favicon.
+          if 'class="brand-wordmark"' not in s:
+              raise SystemExit('Header wordmark missing')
+          if 'favicon-32x32.png?v=163' not in s or 'apple-touch-icon.png?v=163' not in s:
+              raise SystemExit('New favicon links missing')
 
-          # Append at the literal end so this block wins over every stale legacy branding rule.
-          s = s.rstrip() + css + '\n'
-
-          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v162 READABLE DISPLAY LOGO -->', s, count=1)
-          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v162-readable-display-logo"', s, count=1)
-
-          for required in (logo, 'width:min(48vw,620px)!important', 'width:min(94vw,460px)!important'):
-              if required not in s:
-                  raise SystemExit('Missing expected final branding rule: '+required)
-          if 'mobile-auth-tagline" aria-label="Move. Trade. Grow.' in s:
-              raise SystemExit('Duplicate mobile tagline markup still present')
-
-          p.write_text(s, encoding='utf-8')
+          p.write_text(s,encoding='utf-8')
           PY
 
-      - name: Commit readable branding
+      - name: Commit favicon assets
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html MOVA-wordmarklogo-display.png MOVA-logo-crop-info.txt
-          git commit -m "Fix effective MOVA logo size on desktop and mobile"
+          git add index.html MOVA-favicon.png favicon.ico favicon-32x32.png favicon-16x16.png apple-touch-icon.png
+          git commit -m "Install new MOVA favicon and touch icon"
           git push origin main
