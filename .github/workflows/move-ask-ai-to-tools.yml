@@ -1,0 +1,129 @@
+name: Move Ask MOVA AI to Tools
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/move-ask-ai-to-tools.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  move-ask-ai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Move and simplify Ask MOVA AI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Remove the previous Home-page Ask AI block only.
+          start_marker = '  <section class="mova-ask-ai" id="movaAskAi">'
+          end_marker = '  <p class="notice m127-disclaimer">'
+          start = s.find(start_marker)
+          end = s.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('Could not locate the existing Home Ask MOVA AI block')
+          s = s[:start] + s[end:]
+
+          # Put the minimal Ask MOVA AI interface at the very top of Tools.
+          tools_marker = '<section class="page tools-page" id="tools">'
+          if s.count(tools_marker) != 1:
+              raise SystemExit(f'Expected one Tools page marker, found {s.count(tools_marker)}')
+
+          ask_markup = '''<section class="mova-ask-ai mova-ask-ai-tools" id="movaAskAi">
+    <h2 class="mova-ask-title">Ask MOVA AI</h2>
+    <form class="mova-ai-form mova-ai-search-form" onsubmit="return movaAskAiSubmit(event)">
+      <input id="movaAiQuestion" type="search" autocomplete="off" aria-label="Ask MOVA AI" placeholder="Ask about any stock, market or your portfolio…" onkeydown="if(event.key==='Enter'){event.preventDefault();this.form.requestSubmit();}">
+      <button id="movaAiAskBtn" type="submit" tabindex="-1" aria-hidden="true">Search</button>
+    </form>
+    <div class="mova-ai-thread" id="movaAiThread" aria-live="polite"></div>
+  </section>
+'''
+          s = s.replace(tools_marker, tools_marker + '\n' + ask_markup, 1)
+
+          # Final CSS override: only title + search field are visible before a result exists.
+          tools_css = '''
+<style id="mova-ask-ai-tools-css">
+.mova-ask-ai-tools{margin:0 0 24px!important;padding:0!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important}
+.mova-ask-ai-tools .mova-ask-title{margin:0 0 11px!important;font-size:26px!important;line-height:1.15!important;font-weight:850!important;letter-spacing:-.02em!important}
+.mova-ask-ai-tools .mova-ai-search-form{display:block!important;margin:0!important}
+.mova-ask-ai-tools .mova-ai-search-form input{display:block!important;width:100%!important;height:54px!important;min-height:54px!important;margin:0!important;padding:0 16px!important;resize:none!important;border:1px solid rgba(98,200,255,.42)!important;border-radius:15px!important;background:#071521!important;color:#fff!important;font:inherit!important;font-size:14px!important;line-height:54px!important;outline:none!important;box-shadow:none!important}
+.mova-ask-ai-tools .mova-ai-search-form input::placeholder{color:#7f96a9!important;opacity:1!important}
+.mova-ask-ai-tools .mova-ai-search-form input:focus{border-color:rgba(98,200,255,.82)!important;box-shadow:0 0 0 3px rgba(98,200,255,.07)!important}
+.mova-ask-ai-tools #movaAiAskBtn{display:none!important}
+.mova-ask-ai-tools .mova-ai-thread{margin-top:14px!important}
+.mova-ask-ai-tools .mova-ai-thread:empty{display:none!important;margin:0!important}
+.mova-ask-ai-tools .mova-ai-msg{font-size:12px!important;line-height:1.65!important}
+@media(max-width:800px){
+  .mova-ask-ai-tools{margin-bottom:20px!important}
+  .mova-ask-ai-tools .mova-ask-title{font-size:23px!important;margin-bottom:9px!important}
+  .mova-ask-ai-tools .mova-ai-search-form input{height:50px!important;min-height:50px!important;line-height:50px!important;font-size:13px!important;padding:0 13px!important}
+  .mova-ask-ai-tools .mova-ai-msg{font-size:11px!important}
+}
+</style>
+'''
+          if '</head>' not in s:
+              raise SystemExit('Missing </head>')
+          s = s.replace('</head>', tools_css + '</head>', 1)
+
+          # Advance the build marker for easy verification.
+          s = s.replace('<!-- MOVA BUILD v172 ASK MOVA AI -->', '<!-- MOVA BUILD v173 ASK MOVA AI TOOLS -->', 1)
+          s = s.replace('data-mova-build="v172-ask-mova-ai"', 'data-mova-build="v173-ask-mova-ai-tools"', 1)
+
+          # Safety checks: exactly one AI panel, inside Tools, and no old Home copy.
+          if s.count('id="movaAskAi"') != 1:
+              raise SystemExit('Ask MOVA AI panel count is not exactly one')
+          tools_pos = s.find(tools_marker)
+          ask_pos = s.find('id="movaAskAi"')
+          hero_pos = s.find('<div class="tools-hero">', tools_pos)
+          if not (tools_pos < ask_pos < hero_pos):
+              raise SystemExit('Ask MOVA AI is not at the top of Tools')
+          if 'LIVE RESEARCH + PORTFOLIO CONTEXT' in s or 'Why is NVDA moving?' in s:
+              raise SystemExit('Old verbose Ask AI UI still exists')
+          if 'onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.form.requestSubmit();}"' not in s:
+              raise SystemExit('Enter-to-submit handler missing')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Strengthen current research depth
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('api/ask-ai.js')
+          s = p.read_text(encoding='utf-8')
+
+          s = s.replace("text:{verbosity:'medium'}", "text:{verbosity:'high'}")
+          s = s.replace("search_context_size:'medium'", "search_context_size:'high'")
+          s = s.replace('max_output_tokens:5000', 'max_output_tokens:7000')
+
+          needle = 'For current or time-sensitive questions, use web search. Prefer primary/company filings, investor relations, exchanges, regulators and established financial/news sources. State dates for current news. Distinguish facts from interpretation. Never invent prices, analyst targets, earnings numbers or headlines.'
+          replacement = 'For any question naming a stock, share, ticker, listed company, ETF, index or commodity, use web search so the answer reflects current information even when the user does not explicitly say latest or current. For current or time-sensitive questions, use web search. Prefer primary/company filings, investor relations, exchanges, regulators and established financial/news sources. State dates for current news. Distinguish facts from interpretation. Never invent prices, analyst targets, earnings numbers or headlines. For company research, cover what the business does, relevant investment/share-price history, financial and earnings context, valuation context when reliably available, recent news and catalysts, material risks, competitive or sector factors, and what investors should watch next. Explain why each factor matters rather than listing facts.'
+          if needle not in s:
+              raise SystemExit('Could not locate AI research instruction')
+          s = s.replace(needle, replacement, 1)
+
+          for check in ["text:{verbosity:'high'}", "search_context_size:'high'", 'max_output_tokens:7000', 'For any question naming a stock']:
+              if check not in s:
+                  raise SystemExit(f'Missing AI depth update: {check}')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Remove one-time workflow and commit final app change
+        run: |
+          rm .github/workflows/move-ask-ai-to-tools.yml
+          git config user.name "mova-build-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Move Ask MOVA AI to Tools and deepen research"
+          git push origin main
