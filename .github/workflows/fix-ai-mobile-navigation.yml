@@ -172,3 +172,5 @@ appendFileSync('dist/index.html', mobileAiNavPatch, 'utf8');
             git commit -m "Keep MOVA AI mobile nav and close button visible"
             git push origin main
           fi
+
+# retrigger v177
