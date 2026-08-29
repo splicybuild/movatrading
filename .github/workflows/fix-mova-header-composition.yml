@@ -1,4 +1,4 @@
-name: Extract exact desktop MOVA favicon positionally
+name: Restore clean desktop MOVA favicon
 
 on:
   push:
@@ -11,93 +11,46 @@ permissions:
   contents: write
 
 jobs:
-  exact-desktop-favicon:
+  desktop-favicon-only:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Crop exact A and arrow region from original wordmark
+      - name: Restore clean standalone desktop favicon
         run: |
-          test -f MOVA-wordmarklogo.png
+          test -f mova-desktop-favicon-32.png
+          test -f mova-desktop-favicon-16.png
           test -f apple-touch-icon.png
-          python -m pip install --quiet pillow
-          python - <<'PY'
-          from PIL import Image, ImageChops
-          from pathlib import Path
-
-          src=Path('MOVA-wordmarklogo.png')
-          img=Image.open(src).convert('RGBA')
-          w,h=img.size
-
-          # Positional crop of the right-hand main mark only.
-          # This intentionally excludes the silver V to the left and all lower text.
-          box=(int(w*0.64), int(h*0.25), int(w*0.97), int(h*0.62))
-          mark=img.crop(box)
-
-          # Trim only surrounding background/transparent padding while preserving source pixels.
-          rgba=mark.convert('RGBA')
-          alpha=rgba.getchannel('A')
-          if alpha.getbbox():
-              # If source is transparent, crop directly to alpha bounds first.
-              mark=rgba.crop(alpha.getbbox())
-          else:
-              mark=rgba
-
-          # For opaque canvases, trim against corner background colour.
-          rgb=mark.convert('RGB')
-          mw,mh=rgb.size
-          corners=[rgb.getpixel((0,0)),rgb.getpixel((mw-1,0)),rgb.getpixel((0,mh-1)),rgb.getpixel((mw-1,mh-1))]
-          bg=tuple(sum(c[i] for c in corners)//4 for i in range(3))
-          diff=ImageChops.difference(rgb,Image.new('RGB',rgb.size,bg)).convert('L')
-          bbox=diff.point(lambda p:255 if p>18 else 0).getbbox()
-          if bbox:
-              x0,y0,x1,y1=bbox
-              px=max(4,int((x1-x0)*0.04)); py=max(4,int((y1-y0)*0.04))
-              bbox=(max(0,x0-px),max(0,y0-py),min(mark.width,x1+px),min(mark.height,y1+py))
-              mark=mark.crop(bbox)
-
-          # The favicon artwork is still the original pixels; only resized for favicon output.
-          size=512
-          canvas=Image.new('RGBA',(size,size),(5,11,18,255))
-          scale=min(430/mark.width,430/mark.height)
-          resized=mark.resize((max(1,int(mark.width*scale)),max(1,int(mark.height*scale))),Image.Resampling.LANCZOS)
-          canvas.alpha_composite(resized,((size-resized.width)//2,(size-resized.height)//2))
-
-          canvas.save('mova-desktop-favicon-exact2.png','PNG',optimize=True)
-          canvas.resize((32,32),Image.Resampling.LANCZOS).save('mova-desktop-favicon-exact2-32.png','PNG',optimize=True)
-          canvas.resize((16,16),Image.Resampling.LANCZOS).save('mova-desktop-favicon-exact2-16.png','PNG',optimize=True)
-          canvas.save('mova-desktop-favicon-exact2.ico',format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
-
-          Path('MOVA-desktop-favicon-position.txt').write_text(
-              f'source={w}x{h}\nsource_crop={box}\nfinal_mark={mark.width}x{mark.height}\n',encoding='utf-8')
-          print(Path('MOVA-desktop-favicon-position.txt').read_text())
-          PY
-
-      - name: Wire desktop favicon only
-        run: |
           python - <<'PY'
           from pathlib import Path
           import re
+
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
 
+          # Remove desktop/browser favicon declarations only.
           s=re.sub(r'\s*<link[^>]+rel=["\'](?:icon|shortcut icon)["\'][^>]*>\s*','\n',s,flags=re.I)
-          links='''\n<link rel="icon" type="image/png" sizes="32x32" href="mova-desktop-favicon-exact2-32.png?v=166">\n<link rel="icon" type="image/png" sizes="16x16" href="mova-desktop-favicon-exact2-16.png?v=166">\n<link rel="shortcut icon" href="mova-desktop-favicon-exact2.ico?v=166">\n'''
+
+          links='''\n<link rel="icon" type="image/png" sizes="32x32" href="mova-desktop-favicon-32.png?v=167">\n<link rel="icon" type="image/png" sizes="16x16" href="mova-desktop-favicon-16.png?v=167">\n<link rel="shortcut icon" type="image/png" href="mova-desktop-favicon-32.png?v=167">\n'''
           s=s.replace('</head>',links+'\n</head>',1)
 
-          # Do not touch the mobile/Apple icon until desktop is approved.
+          # Mobile/Apple icon must remain untouched until desktop is approved.
           if 'apple-touch-icon.png?v=163' not in s:
               raise SystemExit('Apple/mobile icon changed; aborting')
 
-          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v166 POSITIONAL DESKTOP FAVICON -->',s,count=1)
-          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v166-positional-desktop-favicon"',s,count=1)
+          # Do not use any of the bad wordmark-crop favicon assets.
+          if 'mova-desktop-favicon-exact2' in s or 'mova-desktop-favicon-exact-' in s:
+              raise SystemExit('Bad cropped favicon reference still present')
+
+          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v167 CLEAN DESKTOP FAVICON RESTORE -->',s,count=1)
+          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v167-clean-desktop-favicon-restore"',s,count=1)
           p.write_text(s,encoding='utf-8')
           PY
 
-      - name: Commit desktop favicon
+      - name: Commit desktop favicon restore
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html mova-desktop-favicon-exact2.png mova-desktop-favicon-exact2-32.png mova-desktop-favicon-exact2-16.png mova-desktop-favicon-exact2.ico MOVA-desktop-favicon-position.txt
-          git commit -m "Refine desktop favicon to exact A and arrow region"
+          git add index.html
+          git commit -m "Restore clean standalone desktop favicon"
           git push origin main
