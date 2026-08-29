@@ -1,4 +1,4 @@
-name: Crop and enlarge exact MOVA logo
+name: Build readable MOVA logo asset
 
 on:
   push:
@@ -11,51 +11,124 @@ permissions:
   contents: write
 
 jobs:
-  crop-and-enlarge-branding:
+  readable-logo:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Crop transparent padding from exact uploaded logo
+
+      - name: Create background-aware crop from exact uploaded logo
         run: |
           test -f MOVA-wordmarklogo.png
           python -m pip install --quiet pillow
           python - <<'PY'
-          from PIL import Image
+          from PIL import Image, ImageChops
           from pathlib import Path
-          src=Path('MOVA-wordmarklogo.png')
-          out=Path('MOVA-wordmarklogo-cropped.png')
-          img=Image.open(src).convert('RGBA')
-          bbox=img.getchannel('A').getbbox()
-          if not bbox:
-              raise SystemExit('Logo image contains no visible pixels')
-          img.crop(bbox).save(out,'PNG',optimize=True)
-          print('Original:',img.size,'visible:',bbox,'cropped:',Image.open(out).size)
+
+          src = Path('MOVA-wordmarklogo.png')
+          out = Path('MOVA-wordmarklogo-display.png')
+          info = Path('MOVA-logo-crop-info.txt')
+
+          img = Image.open(src).convert('RGBA')
+          rgb = img.convert('RGB')
+          w, h = rgb.size
+
+          # Estimate the flat/dark canvas colour from the four corners.
+          corners = [rgb.getpixel((0,0)), rgb.getpixel((w-1,0)), rgb.getpixel((0,h-1)), rgb.getpixel((w-1,h-1))]
+          bg = tuple(sum(c[i] for c in corners)//4 for i in range(3))
+          bg_img = Image.new('RGB', rgb.size, bg)
+          diff = ImageChops.difference(rgb, bg_img)
+
+          # Find pixels that differ materially from the surrounding canvas.
+          # Try increasingly strict thresholds until the detected region is no longer essentially the full square.
+          selected = None
+          selected_t = None
+          for threshold in (18, 24, 32, 42, 55, 70):
+              mask = diff.convert('L').point(lambda p, t=threshold: 255 if p > t else 0)
+              bbox = mask.getbbox()
+              if not bbox:
+                  continue
+              x0, y0, x1, y1 = bbox
+              bw, bh = x1-x0, y1-y0
+              if bw < w*0.98 or bh < h*0.90:
+                  selected = bbox
+                  selected_t = threshold
+                  break
+
+          if selected is None:
+              raise SystemExit('Could not safely distinguish the logo from its surrounding canvas')
+
+          x0, y0, x1, y1 = selected
+          bw, bh = x1-x0, y1-y0
+
+          # Add conservative padding so no glow, arrow tip or tagline edge is clipped.
+          pad_x = max(12, int(bw*0.04))
+          pad_y = max(12, int(bh*0.08))
+          x0 = max(0, x0-pad_x)
+          y0 = max(0, y0-pad_y)
+          x1 = min(w, x1+pad_x)
+          y1 = min(h, y1+pad_y)
+
+          crop = img.crop((x0,y0,x1,y1))
+          cw, ch = crop.size
+          ratio = cw/ch
+
+          # A wordmark should be clearly wider than tall. Abort instead of risking a bad crop.
+          if ratio < 1.45:
+              raise SystemExit(f'Detected crop is not safely wordmark-shaped: {cw}x{ch} ratio={ratio:.2f}')
+
+          crop.save(out, 'PNG', optimize=True)
+          info.write_text(
+              f'original={w}x{h}\nbackground={bg}\nthreshold={selected_t}\nbbox={(x0,y0,x1,y1)}\ndisplay={cw}x{ch}\naspect={ratio:.3f}\n',
+              encoding='utf-8'
+          )
+          print(info.read_text())
           PY
-      - name: Use cropped logo and remove duplicate mobile tagline
+
+      - name: Make the detected wordmark the final winning size rule
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          logo='MOVA-wordmarklogo-cropped.png?v=161'
-          s=re.sub(r'MOVA-wordmarklogo(?:-cropped)?\.png(?:\?v=\d+)?',logo,s)
-          s=re.sub(r'<style id="v158-single-logo-source">.*?</style>\s*','',s,count=1,flags=re.S)
-          s=re.sub(r'<style id="v161-readable-logo">.*?</style>\s*','',s,count=1,flags=re.S)
-          css='\n<style id="v161-readable-logo">\nheader .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:0!important;flex:0 0 auto!important}\nheader .brand-app-icon,header .mova-brand-copy{display:none!important}\nheader .brand-wordmark{display:block!important;width:min(44vw,560px)!important;max-width:560px!important;height:auto!important;object-fit:contain!important;object-position:left center!important;margin:0!important}\n@media(max-width:800px){header .brand{justify-content:center!important;width:100%!important;gap:0!important}header .brand-wordmark{display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;margin:0 auto!important}body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 8px!important;box-shadow:none!important}body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}}\n</style>\n'
-          s=s.replace('</head>',css+'</head>',1)
-          s=s.replace('const source=document.querySelector(".brand-app-icon");','const source=document.querySelector(".brand-wordmark");')
-          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v161 READABLE CROPPED LOGO -->',s,count=1)
-          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v161-readable-cropped-logo"',s,count=1)
-          for item in (logo,'width:min(44vw,560px)!important','width:min(90vw,420px)!important','mobile-auth-tagline{display:none!important}'):
-              if item not in s:
-                  raise SystemExit('Missing expected branding update: '+item)
-          p.write_text(s,encoding='utf-8')
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          logo = 'MOVA-wordmarklogo-display.png?v=162'
+
+          # Point active branding at the safely cropped exact artwork.
+          s = re.sub(r'MOVA-wordmarklogo(?:-cropped|-display)?\.png(?:\?v=\d+)?', logo, s)
+          s = re.sub(r'(<img[^>]*class="brand-wordmark"[^>]*src=")[^"]+("[^>]*>)', lambda m: m.group(1)+logo+m.group(2), s, count=1, flags=re.I)
+          s = s.replace('const source=document.querySelector(".brand-app-icon");', 'const source=document.querySelector(".brand-wordmark");')
+
+          # Remove the duplicate mobile tagline markup entirely; it already exists inside the logo artwork.
+          s = re.sub(r'\s*<div class="mobile-auth-tagline"[^>]*>.*?</div>\s*', '\n', s, count=1, flags=re.S)
+
+          # Remove previous assistant branding override blocks.
+          s = re.sub(r'<style id="v161-readable-logo">.*?</style>\s*', '', s, count=1, flags=re.S)
+          s = re.sub(r'<style id="v162-final-readable-logo">.*?</style>\s*', '', s, count=1, flags=re.S)
+
+          # Append the final rule at the end of the document so it wins over stale legacy branding CSS.
+          css = '\n<style id="v162-final-readable-logo">\n'
+          css += '@media(min-width:801px){header .brand{min-height:116px!important;overflow:visible!important}header .brand-wordmark{display:block!important;width:min(48vw,620px)!important;max-width:620px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0!important}}\n'
+          css += '@media(max-width:800px){header .brand{min-height:92px!important;overflow:visible!important}header .brand-wordmark{display:block!important;width:min(94vw,460px)!important;max-width:460px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0 auto!important}body.mova-mobile-welcome .mobile-auth-logo{display:block!important;width:min(92vw,440px)!important;max-width:440px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0 auto 8px!important}body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}}\n'
+          css += '</style>\n'
+          s = s.replace('</body>', css + '</body>', 1)
+
+          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v162 READABLE DISPLAY LOGO -->', s, count=1)
+          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v162-readable-display-logo"', s, count=1)
+
+          for required in (logo, 'width:min(48vw,620px)!important', 'width:min(94vw,460px)!important'):
+              if required not in s:
+                  raise SystemExit('Missing expected final branding rule: '+required)
+          if 'mobile-auth-tagline" aria-label="Move. Trade. Grow.' in s:
+              raise SystemExit('Duplicate mobile tagline markup still present')
+
+          p.write_text(s, encoding='utf-8')
           PY
-      - name: Commit readable logo update
+
+      - name: Commit readable branding
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html MOVA-wordmarklogo-cropped.png
-          git commit -m "Make exact MOVA logo readable on desktop and mobile"
+          git add index.html MOVA-wordmarklogo-display.png MOVA-logo-crop-info.txt
+          git commit -m "Fix effective MOVA logo size on desktop and mobile"
           git push origin main
