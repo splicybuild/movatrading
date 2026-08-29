@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "node scripts/build.mjs && node scripts/restore-ui-runtime.mjs && node scripts/final-branding-runtime.mjs && node scripts/mobile-ai-runtime-fix.mjs && node scripts/ai-learning-runtime.mjs",
+  "buildCommand": "node scripts/build.mjs && node scripts/restore-ui-runtime.mjs && node scripts/final-branding-runtime.mjs && node scripts/mobile-ai-runtime-fix.mjs && node scripts/ai-learning-runtime.mjs && node scripts/ai-visual-keyboard-v180.mjs",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false,
