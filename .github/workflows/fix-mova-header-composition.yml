@@ -1,4 +1,4 @@
-name: Build MOVA favicon from exact logo
+name: Install corrected desktop MOVA favicon
 
 on:
   push:
@@ -11,112 +11,46 @@ permissions:
   contents: write
 
 jobs:
-  favicon:
+  desktop-favicon-only:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build favicon from the exact MOVA artwork
+      - name: Wire corrected desktop favicon only
         run: |
-          test -f MOVA-wordmarklogo.png
-          python -m pip install --quiet pillow
-          python - <<'PY'
-          from PIL import Image, ImageChops, ImageDraw
-          from pathlib import Path
-
-          src = Path('MOVA-wordmarklogo.png')
-          img = Image.open(src).convert('RGBA')
-          rgb = img.convert('RGB')
-          w, h = rgb.size
-
-          # Detect the surrounding canvas colour using the four corners.
-          corners = [rgb.getpixel((0,0)), rgb.getpixel((w-1,0)), rgb.getpixel((0,h-1)), rgb.getpixel((w-1,h-1))]
-          bg = tuple(sum(c[i] for c in corners)//4 for i in range(3))
-          diff = ImageChops.difference(rgb, Image.new('RGB', rgb.size, bg)).convert('L')
-
-          bbox = None
-          for threshold in (18, 24, 32, 42, 55, 70):
-              mask = diff.point(lambda p, t=threshold: 255 if p > t else 0)
-              candidate = mask.getbbox()
-              if candidate:
-                  x0,y0,x1,y1 = candidate
-                  if (x1-x0) > w*.30 and (y1-y0) > h*.10:
-                      bbox = candidate
-                      break
-          if not bbox:
-              raise SystemExit('Could not locate MOVA artwork in source logo')
-
-          x0,y0,x1,y1 = bbox
-          visible = img.crop(bbox)
-          vw,vh = visible.size
-
-          # Favicon direction selected for MOVA: isolate the blue A + green growth arrow
-          # from the existing brand artwork, rather than inventing another symbol.
-          # Use the right-hand portion of the main logo area and exclude lower tagline copy.
-          top_h = max(1, int(vh * 0.72))
-          right_x = max(0, int(vw * 0.61))
-          mark = visible.crop((right_x, 0, vw, top_h))
-
-          # Remove empty surrounding pixels within the mark crop against its corner colour.
-          mrgb = mark.convert('RGB')
-          mw,mh = mrgb.size
-          mcorners = [mrgb.getpixel((0,0)), mrgb.getpixel((mw-1,0)), mrgb.getpixel((0,mh-1)), mrgb.getpixel((mw-1,mh-1))]
-          mbg = tuple(sum(c[i] for c in mcorners)//4 for i in range(3))
-          mdiff = ImageChops.difference(mrgb, Image.new('RGB', mrgb.size, mbg)).convert('L')
-          mbbox = mdiff.point(lambda p: 255 if p > 22 else 0).getbbox()
-          if mbbox:
-              mark = mark.crop(mbbox)
-
-          # Build a clean dark rounded-square icon consistent with the MOVA UI.
-          size = 512
-          canvas = Image.new('RGBA', (size,size), (0,0,0,0))
-          draw = ImageDraw.Draw(canvas)
-          draw.rounded_rectangle((10,10,size-10,size-10), radius=104, fill=(4,12,25,255), outline=(22,115,220,255), width=5)
-
-          max_w,max_h = 390,390
-          mark.thumbnail((max_w,max_h), Image.Resampling.LANCZOS)
-          px = (size-mark.width)//2
-          py = (size-mark.height)//2
-          canvas.alpha_composite(mark, (px,py))
-          canvas.save('MOVA-favicon.png', 'PNG', optimize=True)
-          canvas.resize((180,180), Image.Resampling.LANCZOS).save('apple-touch-icon.png','PNG',optimize=True)
-          canvas.resize((32,32), Image.Resampling.LANCZOS).save('favicon-32x32.png','PNG',optimize=True)
-          canvas.resize((16,16), Image.Resampling.LANCZOS).save('favicon-16x16.png','PNG',optimize=True)
-          canvas.save('favicon.ico', format='ICO', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
-
-          print('source', img.size, 'visible', visible.size, 'mark', mark.size)
-          PY
-
-      - name: Wire browser and touch icons only
-        run: |
+          test -f mova-desktop-favicon-32.png
+          test -f mova-desktop-favicon-16.png
+          test -f apple-touch-icon.png
           python - <<'PY'
           from pathlib import Path
           import re
 
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
 
-          # Remove existing favicon/touch declarations so there is one unambiguous active set.
-          s=re.sub(r'\s*<link[^>]+rel=["\'](?:icon|shortcut icon|apple-touch-icon)["\'][^>]*>\s*','\n',s,flags=re.I)
+          # Remove only desktop/browser favicon declarations.
+          s = re.sub(r'\s*<link[^>]+rel=["\'](?:icon|shortcut icon)["\'][^>]*>\s*', '\n', s, flags=re.I)
 
-          links='''\n<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=163">\n<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=163">\n<link rel="shortcut icon" href="favicon.ico?v=163">\n<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=163">\n'''
-          s=s.replace('</head>',links+'\n</head>',1)
-          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v163 NEW FAVICON -->',s,count=1)
-          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v163-new-favicon"',s,count=1)
+          desktop_links = '''\n<link rel="icon" type="image/png" sizes="32x32" href="mova-desktop-favicon-32.png?v=164">\n<link rel="icon" type="image/png" sizes="16x16" href="mova-desktop-favicon-16.png?v=164">\n<link rel="shortcut icon" type="image/png" href="mova-desktop-favicon-32.png?v=164">\n'''
+          s = s.replace('</head>', desktop_links + '\n</head>', 1)
 
-          # Header must continue to use the wordmark, not the favicon.
-          if 'class="brand-wordmark"' not in s:
-              raise SystemExit('Header wordmark missing')
-          if 'favicon-32x32.png?v=163' not in s or 'apple-touch-icon.png?v=163' not in s:
-              raise SystemExit('New favicon links missing')
+          # IMPORTANT: leave the mobile/Apple touch icon exactly as it was.
+          if 'apple-touch-icon.png?v=163' not in s:
+              raise SystemExit('Existing Apple touch icon reference changed or missing')
 
-          p.write_text(s,encoding='utf-8')
+          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v164 DESKTOP FAVICON FIX -->', s, count=1)
+          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v164-desktop-favicon-fix"', s, count=1)
+
+          if 'mova-desktop-favicon-32.png?v=164' not in s:
+              raise SystemExit('Corrected desktop favicon link missing')
+
+          p.write_text(s, encoding='utf-8')
           PY
 
-      - name: Commit favicon assets
+      - name: Commit desktop favicon fix
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html MOVA-favicon.png favicon.ico favicon-32x32.png favicon-16x16.png apple-touch-icon.png
-          git commit -m "Install new MOVA favicon and touch icon"
+          git add index.html
+          git commit -m "Fix desktop MOVA favicon only"
           git push origin main
