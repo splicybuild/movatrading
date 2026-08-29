@@ -3165,26 +3165,23 @@ main > section.page.active{display:block !important}
 @media(max-width:800px){.mova-ask-ai{padding:15px;margin-top:20px}.mova-ask-ai-head{display:block}.mova-ask-ai-badge{display:inline-block;margin-top:7px}.mova-ai-form{grid-template-columns:1fr}.mova-ai-form button{min-height:46px}.mova-ai-msg.user{margin-left:4%}.mova-ai-msg.assistant{margin-right:0}.mova-ai-prompts{overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}.mova-ai-prompts button{white-space:nowrap}}
 </style>
 <style id="mova-ask-ai-tools-css">
-.mova-ask-ai-tools{margin:0 0 24px!important;padding:0!important;border:0!important;border-radius:0!important;background:none!important;box-shadow:none!important}
+.mova-ask-ai-tools{margin:0 0 24px!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important}
 .mova-ask-ai-tools .mova-ask-title{margin:0 0 11px!important;font-size:26px!important;line-height:1.15!important;font-weight:850!important;letter-spacing:-.02em!important}
-.mova-ask-ai-tools .mova-ai-search-form{display:block!important;margin:0!important}
-.mova-ask-ai-tools .mova-ai-search-form input{display:block!important;width:100%!important;height:54px!important;min-height:54px!important;margin:0!important;padding:0 16px!important;border:1px solid rgba(98,200,255,.42)!important;border-radius:15px!important;background:#071521!important;color:#fff!important;font:inherit!important;font-size:14px!important;line-height:54px!important;outline:none!important;box-shadow:none!important}
-.mova-ask-ai-tools .mova-ai-search-form input::placeholder{color:#7f96a9!important;opacity:1!important}
-.mova-ask-ai-tools .mova-ai-search-form input:focus{border-color:rgba(98,200,255,.82)!important;box-shadow:0 0 0 3px rgba(98,200,255,.07)!important}
-.mova-ask-ai-tools #movaAiAskBtn{display:none!important}
-.mova-ask-ai-tools .mova-ai-thread{margin-top:14px!important}
-.mova-ask-ai-tools .mova-ai-thread:empty{display:none!important;margin:0!important}
-.mova-ask-ai-tools .mova-ai-msg{font-size:12px!important;line-height:1.65!important}
-@media(max-width:800px){
-.mova-ask-ai-tools{margin-bottom:20px!important}
-.mova-ask-ai-tools .mova-ask-title{font-size:23px!important;margin-bottom:9px!important}
-.mova-ask-ai-tools .mova-ai-search-form input{height:50px!important;min-height:50px!important;line-height:50px!important;font-size:13px!important;padding:0 13px!important}
-.mova-ask-ai-tools .mova-ai-msg{font-size:11px!important}
-}
+.mova-ai-launch-form{display:grid!important;grid-template-columns:minmax(0,1fr) 58px!important;gap:10px!important;margin:0!important}
+.mova-ai-launch-form input{width:100%!important;height:58px!important;padding:0 17px!important;border:1px solid rgba(98,200,255,.42)!important;border-radius:16px!important;background:#071521!important;color:#fff!important;font:inherit!important;font-size:14px!important;outline:none!important}
+.mova-ai-launch-form input::placeholder{color:#7f96a9!important}.mova-ai-launch-form input:focus{border-color:rgba(98,200,255,.82)!important;box-shadow:0 0 0 3px rgba(98,200,255,.07)!important}
+.mova-ai-launch-icon{position:relative!important;display:grid!important;place-items:center!important;width:58px!important;height:58px!important;border:1px solid rgba(98,200,255,.5)!important;border-radius:16px!important;background:linear-gradient(145deg,#0b2940,#0a1724)!important;color:#72d7ff!important;cursor:pointer!important}.mova-ai-launch-icon:hover{border-color:rgba(121,239,49,.65)!important;transform:translateY(-1px)!important}.mova-ai-icon-core{font-size:14px!important;font-weight:950!important}.mova-ai-icon-spark{position:absolute!important;top:7px!important;right:8px!important;color:#79ef31!important;font-size:11px!important}
+.mova-ai-modal{position:fixed!important;inset:0!important;z-index:1200!important;display:none!important;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(1,6,10,.76)!important;backdrop-filter:blur(12px)!important}.mova-ai-modal.open{display:flex!important}
+.mova-ai-dialog{width:min(94vw,920px)!important;max-height:min(88vh,860px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;border:1px solid rgba(98,200,255,.24)!important;border-radius:24px!important;background:linear-gradient(180deg,#0a141e,#071018)!important;box-shadow:0 34px 100px rgba(0,0,0,.58)!important}
+.mova-ai-dialog-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;padding:20px 22px 16px!important;border-bottom:1px solid rgba(255,255,255,.065)!important}.mova-ai-dialog-brand{display:flex!important;align-items:center!important;gap:12px!important}.mova-ai-dialog-icon{position:relative!important;display:grid!important;place-items:center!important;width:44px!important;height:44px!important;border:1px solid rgba(98,200,255,.42)!important;border-radius:14px!important;background:linear-gradient(145deg,#0c2b42,#0a1723)!important}.mova-ai-dialog-icon b{font-size:12px!important;color:#70d6ff!important}.mova-ai-dialog-icon i{position:absolute!important;right:6px!important;top:5px!important;font-style:normal!important;color:#79ef31!important;font-size:9px!important}.mova-ai-dialog-head h2{margin:0!important;font-size:22px!important}.mova-ai-dialog-head p{margin:4px 0 0!important;font-size:10px!important;color:var(--muted)!important}.mova-ai-close{width:38px!important;height:38px!important;border:1px solid rgba(255,255,255,.08)!important;border-radius:12px!important;background:#0c1720!important;color:#a9bcc9!important;font-size:22px!important;cursor:pointer!important}
+.mova-ai-suggestion-wrap{padding:16px 22px 8px!important}.mova-ai-suggestion-label{margin-bottom:8px!important;font-size:9px!important;font-weight:850!important;letter-spacing:.09em!important;color:#7890a1!important;text-transform:uppercase!important}.mova-ai-suggestions{display:flex!important;gap:7px!important;flex-wrap:wrap!important}.mova-ai-suggestions button{border:1px solid rgba(98,200,255,.15)!important;background:#091722!important;color:#bdd0dd!important;padding:8px 11px!important;border-radius:999px!important;font-size:9px!important;cursor:pointer!important}
+.mova-ai-dialog .mova-ai-thread{display:grid!important;gap:10px!important;min-height:150px!important;max-height:48vh!important;overflow:auto!important;margin:0!important;padding:12px 22px 18px!important}.mova-ai-dialog .mova-ai-msg{padding:13px 14px!important;border-radius:14px!important;line-height:1.65!important;white-space:pre-wrap!important;font-size:12px!important}.mova-ai-dialog .mova-ai-msg.user{margin-left:12%!important;background:#0b2030!important;border:1px solid rgba(98,200,255,.18)!important}.mova-ai-dialog .mova-ai-msg.assistant{margin-right:3%!important;background:#09140e!important;border:1px solid rgba(121,239,49,.14)!important;color:#d9e6ee!important}
+.mova-ai-composer{display:grid!important;grid-template-columns:minmax(0,1fr) 48px!important;gap:9px!important;padding:14px 22px 20px!important;border-top:1px solid rgba(255,255,255,.065)!important;background:#08121a!important}.mova-ai-composer input{width:100%!important;height:48px!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:14px!important;background:#06101a!important;color:#fff!important;padding:0 14px!important;font:inherit!important;font-size:12px!important;outline:none!important}.mova-ai-send{display:grid!important;place-items:center!important;width:48px!important;height:48px!important;border:0!important;border-radius:14px!important;background:linear-gradient(135deg,var(--blue2),#2dbca4,var(--green))!important;color:#041018!important;font-size:20px!important;font-weight:900!important;cursor:pointer!important}.mova-ai-footer-note{padding:0 22px 15px!important;margin-top:-7px!important;color:#708493!important;font-size:8px!important;background:#08121a!important}body.mova-ai-modal-open{overflow:hidden!important}
+@media(max-width:800px){.mova-ai-launch-form{grid-template-columns:minmax(0,1fr) 50px!important;gap:8px!important}.mova-ai-launch-form input{height:50px!important;font-size:13px!important}.mova-ai-launch-icon{width:50px!important;height:50px!important}.mova-ai-modal{padding:10px!important;align-items:flex-end!important}.mova-ai-dialog{width:100%!important;max-height:92vh!important;border-radius:22px 22px 14px 14px!important}.mova-ai-suggestions{flex-wrap:nowrap!important;overflow-x:auto!important}.mova-ai-suggestions button{white-space:nowrap!important}.mova-ai-composer{padding:12px 15px 15px!important}}
 </style>
 </head>
-<!-- MOVA BUILD v173 ASK MOVA AI TOOLS -->
-<body data-mova-build="v173-ask-mova-ai-tools">
+<!-- MOVA BUILD v174 MOVA AI POPUP -->
+<body data-mova-build="v174-mova-ai-popup">
 <div class="app">
 <header>
 <div aria-label="Go to Home" class="brand" id="brandHome" onclick="return showPage('home')" role="button" style="cursor:pointer" tabindex="0">
@@ -3488,11 +3485,10 @@ main > section.page.active{display:block !important}
 <section class="page tools-page" id="tools">
 <section class="mova-ask-ai mova-ask-ai-tools" id="movaAskAi">
   <h2 class="mova-ask-title">Ask MOVA AI</h2>
-  <form class="mova-ai-form mova-ai-search-form" onsubmit="return movaAskAiSubmit(event)">
-    <input id="movaAiQuestion" type="search" autocomplete="off" aria-label="Ask MOVA AJ" placeholder="Ask about any stock, market or your portfolio..." onkeydown="if(event.key==='Enter'){event.preventDefault();this.form.requestSubmit();}">
-    <button id="movaAiAskBtn" type="submit" tabindex="-1" aria-hidden="true">Search</button>
+  <form class="mova-ai-launch-form" onsubmit="return movaAiLaunchFromTools(event)">
+    <input id="movaAiLauncherQuestion" type="search" autocomplete="off" aria-label="Ask MOVA AI" placeholder="Ask about any stock, market or your portfolio...">
+    <button class="mova-ai-launch-icon" type="button" onclick="return movaAiOpenModal()" aria-label="Open MOVA AI analysis"><span class="mova-ai-icon-core">AI</span><span class="mova-ai-icon-spark">&#10022;</span></button>
   </form>
-  <div class="mova-ai-thread" id="movaAiThread" aria-live="polite"></div>
 </section>
 
   <div class="tools-hero">
@@ -8427,30 +8423,23 @@ window.mfRenderDriverLive=function(data){
 <script id="mova-ask-ai-js">
 const movaAiHistory=[];
 function movaAiEscape(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function movaAiPortfolioPayload(){
-  const rows=(Array.isArray(holdings)?holdings:[]).map(h=>({ticker:h.ticker,qty:Number(h.qty)||0,avg:Number(h.avg)||0,current:Number(h.current)||0}));
-  return {holdings:rows,cash:Number((typeof walletState!=='undefined'&&walletState)?walletState.balance:0)||0};
-}
-function movaAiUsePrompt(q){const el=document.getElementById('movaAiQuestion');if(!el)return;el.value=q;el.focus();}
-function movaAiAdd(role,text,sources=[]){
-  const host=document.getElementById('movaAiThread');if(!host)return;
-  const box=document.createElement('div');box.className='mova-ai-msg '+role;box.innerHTML=movaAiEscape(text);
-  if(Array.isArray(sources)&&sources.length){const src=document.createElement('div');src.className='mova-ai-sources';sources.slice(0,8).forEach((s,i)=>{if(!s||!s.url)return;const a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener';a.textContent=String(s.title||('Source '+(i+1))).slice(0,55);src.appendChild(a)});box.appendChild(src)}
-  host.appendChild(box);
-}
-function movaAiClear(){movaAiHistory.length=0;const host=document.getElementById('movaAiThread');if(host)host.innerHTML='';}
-async function movaAskAiSubmit(ev){
-  if(ev)ev.preventDefault();
-  const input=document.getElementById('movaAiQuestion'),btn=document.getElementById('movaAiAskBtn'),host=document.getElementById('movaAiThread');
-  const q=String(input&&input.value||'').trim();if(!q)return false;
-  movaAiAdd('user',q);movaAiHistory.push({role:'user',content:q});if(input)input.value='';
-  if(btn){btn.disabled=true;btn.textContent='Researching…'}
-  const thinking=document.createElement('div');thinking.className='mova-ai-thinking';thinking.textContent='MOVA AI is checking your portfolio, market context and relevant news…';if(host)host.appendChild(thinking);
-  try{
-    const r=await fetch('/api/ask-ai',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({question:q,portfolio:movaAiPortfolioPayload(),history:movaAiHistory.slice(-8)})});
-    const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||('Ask AI '+r.status));
-    thinking.remove();movaAiAdd('assistant',d.answer||'No answer returned.',d.sources||[]);movaAiHistory.push({role:'assistant',content:d.answer||''});
-  }catch(e){thinking.remove();movaAiAdd('error','MOVA AI could not complete this request: '+e.message)}finally{if(btn){btn.disabled=false;btn.textContent='Ask MOVA AI →'}}
-  return false;
-}
+function movaAiPortfolioPayload(){const rows=(Array.isArray(holdings)?holdings:[]).map(h=>({ticker:h.ticker,qty:Number(h.qty)||0,avg:Number(h.avg)||0,current:Number(h.current)||0}));return {holdings:rows,cash:Number((typeof walletState!=='undefined'&&walletState)?walletState.balance:0)||0};}
+function movaAiTopHolding(){const rows=(Array.isArray(holdings)?holdings:[]).map(h=>({ticker:String(h.ticker||'').toUpperCase(),value:(Number(h.qty)||0)*(Number(h.current)||Number(h.avg)||0)})).filter(x=>x.ticker).sort((a,b)=>b.value-a.value);return rows[0]?.ticker||'NVDA';}
+function movaAiRenderSuggestions(){const host=document.getElementById('movaAiSuggestions');if(!host)return;const top=movaAiTopHolding();const qs=[`Why is ${top} moving and what matters next?`,`Give me the bull and bear case for ${top}.`,'What current news could affect my portfolio?','Which of my holdings has the highest concentration risk?','Which market sectors are strongest right now?',"Explain a stock's investment history and key turning points."];host.innerHTML=qs.map(q=>`<button type="button" data-q="${encodeURIComponent(q)}">${movaAiEscape(q)}</button>`).join('');host.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>movaAiRunPrompt(decodeURIComponent(b.dataset.q||''))));}
+function movaAiOpenModal(prefill=''){const modal=document.getElementById('movaAiModal'),input=document.getElementById('movaAiQuestion');if(!modal)return false;movaAiRenderSuggestions();modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('mova-ai-modal-open');if(input&&prefill)input.value=prefill;setTimeout(()=>input?.focus(),40);return false;}
+function movaAiCloseModal(){const modal=document.getElementById('movaAiModal');if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true')}document.body.classList.remove('mova-ai-modal-open');return false;}
+function movaAiLaunchFromTools(ev){if(ev)ev.preventDefault();const launcher=document.getElementById('movaAiLauncherQuestion');const q=String(launcher?.value||'').trim();movaAiOpenModal(q);if(q){if(launcher)launcher.value='';setTimeout(()=>document.getElementById('movaAiModalForm')?.requestSubmit(),50)}return false;}
+function movaAiUsePrompt(q){return movaAiOpenModal(q);}function movaAiRunPrompt(q){movaAiOpenModal(q);setTimeout(()=>document.getElementById('movaAiModalForm')?.requestSubmit(),50);return false;}function movaAiScroll(){const host=document.getElementById('movaAiThread');if(host)host.scrollTop=host.scrollHeight;}
+function movaAiAdd(role,text,sources=[]){const host=document.getElementById('movaAiThread');if(!host)return;const box=document.createElement('div');box.className='mova-ai-msg '+role;box.textContent=String(text??'');if(Array.isArray(sources)&&sources.length){const src=document.createElement('div');src.className='mova-ai-sources';sources.slice(0,8).forEach((s,i)=>{if(!s||!s.url)return;const a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener';a.textContent=String(s.title||('Source '+(i+1))).slice(0,70);src.appendChild(a)});box.appendChild(src)}host.appendChild(box);movaAiScroll();}
+async function movaAskAiSubmit(ev){if(ev)ev.preventDefault();movaAiOpenModal();const input=document.getElementById('movaAiQuestion'),btn=document.getElementById('movaAiAskBtn'),host=document.getElementById('movaAiThread');const q=String(input&&input.value||'').trim();if(!q)return false;movaAiAdd('user',q);movaAiHistory.push({role:'user',content:q});if(input)input.value='';if(btn){btn.disabled=true;btn.textContent='...'}const thinking=document.createElement('div');thinking.className='mova-ai-thinking';thinking.textContent='MOVA is researching the company, market data, price history and relevant news...';if(host)host.appendChild(thinking);movaAiScroll();try{const r=await fetch('/api/ask-ai',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({question:q,portfolio:movaAiPortfolioPayload(),history:movaAiHistory.slice(-8)})});const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||('Ask AI '+r.status));thinking.remove();movaAiAdd('assistant',d.answer||'No answer returned.',d.sources||[]);movaAiHistory.push({role:'assistant',content:d.answer||''});}catch(e){thinking.remove();movaAiAdd('error','MOVA AI could not complete this request: '+e.message)}finally{if(btn){btn.disabled=false;btn.textContent='↑'}}return false;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('movaAiModal')?.classList.contains('open'))movaAiCloseModal();});
 </script>
+
+<div class="mova-ai-modal" id="movaAiModal" aria-hidden="true" onclick="if(event.target===this)movaAiCloseModal()">
+<section class="mova-ai-dialog" role="dialog" aria-modal="true" aria-labelledby="movaAiDialogTitle">
+<div class="mova-ai-dialog-head"><div class="mova-ai-dialog-brand"><span class="mova-ai-dialog-icon"><b>AI</b><i>&#10022;</i></span><div><h2 id="movaAiDialogTitle">MOVA AI</h2><p>Company research, market context and portfolio analysis</p></div></div><button class="mova-ai-close" type="button" onclick="return movaAiCloseModal()" aria-label="Close MOVA AI">&times;</button></div>
+<div class="mova-ai-suggestion-wrap"><div class="mova-ai-suggestion-label">Suggested questions</div><div class="mova-ai-suggestions" id="movaAiSuggestions"></div></div>
+<div class="mova-ai-thread" id="movaAiThread" aria-live="polite"></div>
+<form class="mova-ai-composer" id="movaAiModalForm" onsubmit="return movaAskAiSubmit(event)"><input id="movaAiQuestion" type="search" autocomplete="off" aria-label="Question for MOVA AI" placeholder="Ask a follow-up or start a new analysis..."><button class="mova-ai-send" id="movaAiAskBtn" type="submit" aria-label="Send question">&#8593;</button></form>
+<div class="mova-ai-footer-note">MOVA combines available market, company, news and portfolio data. Investment conclusions are research context, not personalised financial advice.</div>
+</section></div>

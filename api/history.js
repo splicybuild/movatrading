@@ -143,6 +143,15 @@ export default{
       if(candidates.length)mode="alternate";
     }
 
+    if(!candidates.length && /^[A-Z0-9.\-]{1,12}$/.test(alias)){
+      const rows=await symbolSearch(alias,key);
+      const exact=rows.find(x=>String(x.symbol||"").toUpperCase()===alias && /stock|equity|depositary/i.test(String(x.instrument_type||"")));
+      const preferred=exact||rows.find(x=>/stock|equity|depositary/i.test(String(x.instrument_type||"")))||rows[0];
+      candidates=[preferred?.symbol,alias,`${alias}:NASDAQ`,`${alias}:NYSE`].filter(Boolean);
+      candidates=[...new Set(candidates)];
+      mode="search";
+    }
+
     if(!candidates.length)throw new Error("No Twelve Data symbol could be resolved for this asset.");
 
     let result;

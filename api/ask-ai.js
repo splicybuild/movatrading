@@ -31,6 +31,36 @@ function fallbackPortfolioAnswer(q,p){
   const s=p.illustrativeScenarios;
   return `MOVA portfolio snapshot\n\nCurrent portfolio value: ${money(p.totalValue)} (${money(p.holdingsValue)} invested + ${money(p.cash)} cash). Unrealised P/L versus recorded average cost: ${p.totalPnl>=0?'+':''}${money(p.totalPnl)} (${p.totalPnlPct>=0?'+':''}${p.totalPnlPct.toFixed(1)}%).\n\nLargest concentrations: ${top}. Concentration is important because a small number of large positions can dominate both upside and drawdown risk.\n\nIllustrative growth scenarios (not forecasts):\n• 4% annualised: ${money(s.cautious.oneYear)} in 1y, ${money(s.cautious.threeYears)} in 3y, ${money(s.cautious.fiveYears)} in 5y.\n• 8% annualised: ${money(s.base.oneYear)} in 1y, ${money(s.base.threeYears)} in 3y, ${money(s.base.fiveYears)} in 5y.\n• 12% annualised: ${money(s.strong.oneYear)} in 1y, ${money(s.strong.threeYears)} in 3y, ${money(s.strong.fiveYears)} in 5y.\n\nFor a deeper answer to “${safeText(q,180)}” using current company news, macro drivers and web research, MOVA needs OPENAI_API_KEY configured on the deployment.`;
 }
+
+const MOVA_COMPANY_NAMES={NVDA:'NVIDIA',MSFT:'Microsoft',AAPL:'Apple',AMZN:'Amazon',META:'Meta Platforms',GOOGL:'Alphabet',GOOG:'Alphabet',TSLA:'Tesla',AVGO:'Broadcom',AMD:'Advanced Micro Devices',ASML:'ASML Holding',PLTR:'Palantir Technologies',NFLX:'Netflix',INTC:'Intel',MU:'Micron Technology',ARM:'Arm Holdings',QCOM:'Qualcomm',ORCL:'Oracle',CRM:'Salesforce',ADBE:'Adobe'};
+const MOVA_TICKER_STOP=new Set(['MOVA','AI','ETF','ETFS','USD','US','UK','CEO','CFO','EPS','PE','P','L','IPO','ADR','THE','AND','WHAT','WHO','WHY','HOW','IS','ARE','MY']);
+function inferTicker(q){const raw=String(q||'');for(const [ticker,name] of Object.entries(MOVA_COMPANY_NAMES)){if(new RegExp('\b'+name.replace(/[.*+?^${}()|[\]\]/g,'\$&')+'\b','i').test(raw))return ticker;}const tokens=raw.match(/[A-Z][A-Z0-9.\-]{1,7}/g)||[];return tokens.find(x=>!MOVA_TICKER_STOP.has(x))||'';}
+function isPortfolioIntent(q){const x=String(q||'').toLowerCase();return /portfolio|holdings?|positions?|allocation|concentration|diversif|unrealised|p\/?l/.test(x)||/(my|our)\s+(investments?|stocks?|shares?)/.test(x);}
+function pct(v){return Number.isFinite(v)?`${v>=0?'+':''}${v.toFixed(1)}%`:'n/a';}
+function histStats(values){const rows=(Array.isArray(values)?values:[]).map(v=>({date:v.datetime,close:Number(v.close),high:Number(v.high),low:Number(v.low)})).filter(v=>Number.isFinite(v.close));if(!rows.length)return null;const latest=rows[0].close,ret=i=>rows[i]&&rows[i].close?((latest/rows[i].close)-1)*100:null,yr=rows.slice(0,253),highs=yr.map(x=>x.high).filter(Number.isFinite),lows=yr.map(x=>x.low).filter(Number.isFinite);return {latest,date:rows[0].date,oneMonth:ret(21),threeMonth:ret(63),sixMonth:ret(126),oneYear:ret(252),high52:highs.length?Math.max(...highs):null,low52:lows.length?Math.min(...lows):null};}
+async function jsonOrNull(url){try{const r=await fetch(url,{headers:{Accept:'application/json'}});const d=await r.json().catch(()=>null);return r.ok&&d&&!d.error?d:null;}catch{return null;}}
+async function fallbackCompanyAnswer(request,question){const ticker=inferTicker(question);if(!ticker)return null;const name=MOVA_COMPANY_NAMES[ticker]||ticker,origin=new URL(request.url).origin;const [profile,market,history,news]=await Promise.all([jsonOrNull(`${origin}/api/company-history?ticker=${encodeURIComponent(ticker)}&name=${encodeURIComponent(name)}`),jsonOrNull(`${origin}/api/market?symbols=${encodeURIComponent(ticker)}`),jsonOrNull(`${origin}/api/history?symbol=${encodeURIComponent(ticker)}&interval=1day&outputsize=260`),jsonOrNull(`${origin}/api/news?symbols=${encodeURIComponent(ticker)}`)]);if(!profile&&!market&&!history&&!news)return null;const a=market?.assets?.[0]||null,h=histStats(history?.values),heads=(news?.items||[]).slice(0,4),timeline=(profile?.timeline||[]).slice(0,5),sources=[];if(profile?.website)sources.push({title:`${name} official website`,url:profile.website});for(const x of heads)if(x?.url&&!sources.some(y=>y.url===x.url))sources.push({title:x.title||x.headline||`${ticker} news`,url:x.url});const parts=[`${name} (${ticker}) — MOVA research snapshot`];if(profile?.summary)parts.push(`
+Who they are
+${safeText(profile.summary,1800)}`);if(profile?.sections?.business)parts.push(`
+How the business works
+${safeText(profile.sections.business,1300)}`);const facts=[];if(profile?.foundedDisplay)facts.push(`Founded: ${profile.foundedDisplay}`);if(profile?.headquarters)facts.push(`Headquarters: ${profile.headquarters}`);if(facts.length)parts.push(`
+Company background
+${facts.join('
+')}`);if(h){let line=`Latest historical close returned: ${money(h.latest)}${h.date?` (${h.date})`:''}.`;const moves=[];if(Number.isFinite(h.oneMonth))moves.push(`1 month ${pct(h.oneMonth)}`);if(Number.isFinite(h.threeMonth))moves.push(`3 months ${pct(h.threeMonth)}`);if(Number.isFinite(h.sixMonth))moves.push(`6 months ${pct(h.sixMonth)}`);if(Number.isFinite(h.oneYear))moves.push(`1 year ${pct(h.oneYear)}`);if(moves.length)line+=` Approximate price performance: ${moves.join(', ')}.`;if(Number.isFinite(h.low52)&&Number.isFinite(h.high52))line+=` 52-week range: ${money(h.low52)} to ${money(h.high52)}.`;parts.push(`
+Investment / share-price history
+${line}`);}if(a)parts.push(`
+Current market read
+${ticker} is ${pct(Number(a.changePct)||0)} today at about ${money(Number(a.priceNative??a.priceUSD??a.price))}. Current direction: ${a.analysis?.direction||'mixed'}; momentum: ${a.analysis?.momentum||'normal'}. Source: ${a.provider||market?.source||'MOVA market feed'}.`);if(timeline.length)parts.push(`
+Key company milestones
+${timeline.map(x=>`• ${x.year||''}${x.year?' — ':''}${x.title||'Milestone'}: ${safeText(x.text,360)}`).join('
+')}`);if(heads.length)parts.push(`
+Recent news
+${heads.map(x=>`• ${x.datetime?new Date(x.datetime).toISOString().slice(0,10)+' — ':''}${safeText(x.title||x.headline,240)}${x.source?` (${x.source})`:''}`).join('
+')}`);parts.push(`
+MOVA view
+For an investor, the key is to connect the business quality and competitive position with this price trend, valuation, earnings trajectory and current catalysts. This answer uses MOVA's available company and market feeds. The generative AI layer is not connected on this deployment yet, so MOVA is showing the underlying research rather than inventing an AI opinion.`);return {answer:parts.join('
+'),sources:sources.slice(0,8),configured:false,ticker,fallback:'company-research'};}
+
 function collectSources(data){
   const out=[];
   for(const item of data?.output||[]){
@@ -57,8 +87,10 @@ export default {async fetch(request){
     const history=Array.isArray(body?.history)?body.history.slice(-8).map(x=>({role:x?.role==='assistant'?'assistant':'user',content:safeText(x?.content,4000)})):[];
     const key=process.env.OPENAI_API_KEY;
     if(!key){
-      if(/portfolio|holding|investment|invested|growth|project|risk|diversif|concentrat|profit|loss|p\/?l/i.test(question))return Response.json({answer:fallbackPortfolioAnswer(question,portfolio),sources:[],configured:false,portfolio},{headers:{'Cache-Control':'no-store'}});
-      return Response.json({answer:'MOVA Ask AI is installed, but the deployment does not currently have OPENAI_API_KEY configured. Once it is added, I can answer this with live web research, current relevant news and detailed stock analysis.',sources:[],configured:false},{headers:{'Cache-Control':'no-store'}});
+      if(isPortfolioIntent(question))return Response.json({answer:fallbackPortfolioAnswer(question,portfolio),sources:[],configured:false,portfolio},{headers:{'Cache-Control':'no-store'}});
+      const companyFallback=await fallbackCompanyAnswer(request,question);
+      if(companyFallback)return Response.json(companyFallback,{headers:{'Cache-Control':'no-store'}});
+      return Response.json({answer:'MOVA can research named companies and tickers from its market/company feeds, but the generative AI layer is not connected on this deployment yet. Include a company ticker such as ASML, AMD or NVDA, or connect OPENAI_API_KEY for broader live AI research and synthesis.',sources:[],configured:false},{headers:{'Cache-Control':'no-store'}});
     }
 
     const now=new Date().toISOString();
