@@ -1,4 +1,4 @@
-name: Resize exact MOVA uploaded logo
+name: Crop and enlarge exact MOVA logo
 
 on:
   push:
@@ -11,54 +11,90 @@ permissions:
   contents: write
 
 jobs:
-  resize-branding:
+  crop-and-enlarge-branding:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Enlarge desktop and mobile MOVA logo
+
+      - name: Crop transparent padding from exact uploaded logo
         run: |
           test -f MOVA-wordmarklogo.png
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+
+          src = Path('MOVA-wordmarklogo.png')
+          out = Path('MOVA-wordmarklogo-cropped.png')
+
+          img = Image.open(src).convert('RGBA')
+          alpha = img.getchannel('A')
+          bbox = alpha.getbbox()
+          if not bbox:
+              raise SystemExit('Logo image contains no visible pixels')
+
+          # Remove transparent canvas only. The logo artwork itself is unchanged.
+          cropped = img.crop(bbox)
+          cropped.save(out, 'PNG', optimize=True)
+          print(f'Original size: {img.size}; visible bounds: {bbox}; cropped size: {cropped.size}')
+          PY
+
+      - name: Use cropped logo and remove duplicate mobile tagline
+        run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          logo = 'MOVA-wordmarklogo-cropped.png?v=161'
 
-          # Desktop: size the square-canvas artwork by width so the visible wordmark is much larger.
-          s=re.sub(
-              r'header \.brand-wordmark\{display:block!important;height:[^;]+;width:[^;]+;max-width:[^;]+;object-fit:contain!important;object-position:left center!important;margin:0!important\}',
-              'header .brand-wordmark{display:block!important;height:auto!important;width:min(36vw,430px)!important;max-width:430px!important;object-fit:contain!important;object-position:left center!important;margin:0!important}',
-              s,
-              count=1
-          )
+          # Use the cropped exact logo for the active header and mobile/login branding.
+          s = re.sub(r'MOVA-wordmarklogo(?:-cropped)?\.png(?:\?v=\d+)?', logo, s)
+          s = re.sub(r'(<img[^>]*class="brand-wordmark"[^>]*src=")[^"]+("[^>]*>)', lambda m: m.group(1)+logo+m.group(2), s, count=1, flags=re.I)
 
-          # Mobile: a modest increase over the previous 72vw / 330px size.
-          s=s.replace(
-              'header .brand-wordmark{display:block!important;height:auto!important;width:min(72vw,330px)!important;max-width:330px!important;object-fit:contain!important;margin:0 auto!important}',
-              'header .brand-wordmark{display:block!important;height:auto!important;width:min(80vw,370px)!important;max-width:370px!important;object-fit:contain!important;margin:0 auto!important}'
-          )
-          s=s.replace(
-              'body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(72vw,330px)!important;max-width:330px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}',
-              'body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(80vw,370px)!important;max-width:370px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 10px!important;box-shadow:none!important}'
-          )
+          # Replace the final branding block with sizes based on the visible artwork.
+          s = re.sub(r'<style id="v158-single-logo-source">.*?</style>\s*', '', s, count=1, flags=re.S)
+          css = '''<style id="v161-readable-logo">
+header .brand{display:flex!important;align-items:center!important;justify-content:flex-start!important;width:auto!important;gap:0!important;flex:0 0 auto!important}
+header .brand-app-icon,header .mova-brand-copy{display:none!important}
+header .brand-wordmark{display:block!important;width:min(44vw,560px)!important;max-width:560px!important;height:auto!important;object-fit:contain!important;object-position:left center!important;margin:0!important}
+@media(max-width:800px){
+  header .brand{justify-content:center!important;width:100%!important;gap:0!important}
+  header .brand-wordmark{display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;margin:0 auto!important}
+  body.mova-mobile-welcome .mobile-auth-brand{display:flex!important;flex-direction:column!important;align-items:center!important}
+  body.mova-mobile-welcome .mobile-auth-brand>.label{order:1!important;margin:0 0 10px!important}
+  body.mova-mobile-welcome .mobile-auth-logo{order:2!important;display:block!important;width:min(90vw,420px)!important;max-width:420px!important;height:auto!important;object-fit:contain!important;border-radius:0!important;margin:0 auto 8px!important;box-shadow:none!important}
+  body.mova-mobile-welcome .mobile-auth-full-brand{display:none!important}
+  body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}
+}
+</style>'''
+          s = s.replace('</head>', css + '\n</head>', 1)
 
-          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v160 LARGER EXACT LOGO -->',s,count=1)
-          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v160-larger-exact-logo"',s,count=1)
+          # Mobile JS should continue to copy the same exact desktop wordmark source.
+          s = s.replace('const source=document.querySelector(".brand-app-icon");',
+                        'const source=document.querySelector(".brand-wordmark");')
 
-          if 'MOVA-wordmarklogo.png?v=159' not in s:
-              raise SystemExit('exact uploaded logo reference missing')
-          if 'width:min(36vw,430px)!important' not in s:
-              raise SystemExit('desktop logo size update missing')
-          if 'width:min(80vw,370px)!important' not in s:
-              raise SystemExit('mobile logo size update missing')
+          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v161 READABLE CROPPED LOGO -->', s, count=1)
+          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v161-readable-cropped-logo"', s, count=1)
 
-          p.write_text(s,encoding='utf-8')
+          checks = [
+              logo,
+              'width:min(44vw,560px)!important',
+              'width:min(90vw,420px)!important',
+              'body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}'
+          ]
+          for item in checks:
+              if item not in s:
+                  raise SystemExit(f'Missing expected branding update: {item}')
+
+          p.write_text(s, encoding='utf-8')
           PY
-      - name: Commit
+
+      - name: Commit readable logo update
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html
-          git commit -m "Enlarge exact MOVA logo on desktop and mobile"
+          git add index.html MOVA-wordmarklogo-cropped.png
+          git commit -m "Make exact MOVA logo readable on desktop and mobile"
           git push origin main
