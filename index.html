@@ -3155,9 +3155,18 @@ main > section.page.active{display:block !important}
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/mova-favicon-16.png?v=170">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/mova-favicon-180.png?v=170">
 
+
+<style id="mova-ask-ai-css">
+.mova-ask-ai{margin:26px 0 12px;padding:20px;border:1px solid rgba(98,200,255,.18);background:linear-gradient(145deg,rgba(8,20,31,.98),rgba(7,13,21,.98));border-radius:20px;box-shadow:0 20px 55px rgba(0,0,0,.22)}
+.mova-ask-ai-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.mova-ask-ai-head h2{margin:4px 0 6px;font-size:24px}.mova-ask-ai-badge{font-size:9px;font-weight:900;letter-spacing:.08em;color:var(--green);border:1px solid rgba(121,239,49,.25);background:rgba(121,239,49,.06);padding:7px 9px;border-radius:999px;white-space:nowrap}
+.mova-ai-prompts{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}.mova-ai-prompts button{border:1px solid rgba(98,200,255,.15);background:#09151f;color:#bcd0dd;padding:7px 10px;border-radius:999px;font-size:9px;cursor:pointer}.mova-ai-prompts button:hover{color:#fff;border-color:var(--blue)}
+.mova-ai-form{display:grid;grid-template-columns:1fr auto;gap:9px}.mova-ai-form textarea{width:100%;min-height:82px;resize:vertical;background:#071019;color:#fff;border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:13px 14px;line-height:1.5}.mova-ai-form textarea:focus{outline:none;border-color:rgba(98,200,255,.65);box-shadow:0 0 0 3px rgba(98,200,255,.06)}.mova-ai-form button{align-self:stretch;min-width:118px}.mova-ai-meta{margin-top:8px;font-size:9px;color:var(--muted)}
+.mova-ai-thread{display:grid;gap:10px;margin-top:15px}.mova-ai-msg{padding:13px 14px;border-radius:14px;line-height:1.58;white-space:pre-wrap;font-size:11px}.mova-ai-msg.user{margin-left:12%;background:#0b2030;border:1px solid rgba(98,200,255,.18)}.mova-ai-msg.assistant{margin-right:4%;background:#09140e;border:1px solid rgba(121,239,49,.14);color:#d9e6ee}.mova-ai-msg.error{background:#251017;border-color:rgba(255,93,103,.28);color:#ffd8dc}.mova-ai-thinking{color:var(--muted);font-size:10px;padding:8px 2px}.mova-ai-sources{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.mova-ai-sources a{font-size:8px;color:var(--blue);text-decoration:none;border:1px solid rgba(98,200,255,.16);background:#071019;padding:5px 7px;border-radius:999px}.mova-ai-tools{display:flex;justify-content:flex-end;margin-top:8px}.mova-ai-tools button{border:0;background:none;color:var(--muted);font-size:9px;cursor:pointer}
+@media(max-width:800px){.mova-ask-ai{padding:15px;margin-top:20px}.mova-ask-ai-head{display:block}.mova-ask-ai-badge{display:inline-block;margin-top:7px}.mova-ai-form{grid-template-columns:1fr}.mova-ai-form button{min-height:46px}.mova-ai-msg.user{margin-left:4%}.mova-ai-msg.assistant{margin-right:0}.mova-ai-prompts{overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}.mova-ai-prompts button{white-space:nowrap}}
+</style>
 </head>
-<!-- MOVA BUILD v171 ORGANIZED BRAND ASSETS -->
-<body data-mova-build="v171-organized-brand-assets">
+<!-- MOVA BUILD v172 ASK MOVA AI -->
+<body data-mova-build="v172-ask-mova-ai">
 <div class="app">
 <header>
 <div aria-label="Go to Home" class="brand" id="brandHome" onclick="return showPage('home')" role="button" style="cursor:pointer" tabindex="0">
@@ -3265,6 +3274,27 @@ main > section.page.active{display:block !important}
     <button type="button" onclick="showPage('marketBreadth',null)"><small>BREADTH</small><b>68% Advancing</b><span class="up">Technology leads</span></button>
     <button type="button" id="m131LatestDrivers" onclick="return movaOpenLatestDrivers()"><small>NEWS</small><b>Latest drivers</b><span class="blue">Open stories →</span></button>
   </div>
+
+
+  <section class="mova-ask-ai" id="movaAskAi">
+    <div class="mova-ask-ai-head">
+      <div><div class="label">ASK MOVA AI</div><h2>Ask anything about a stock — or your portfolio</h2><p class="muted">Research shares, explain today's move, connect relevant news and market drivers, or analyse your own holdings and growth scenarios.</p></div>
+      <span class="mova-ask-ai-badge">LIVE RESEARCH + PORTFOLIO CONTEXT</span>
+    </div>
+    <div class="mova-ai-prompts">
+      <button type="button" onclick="movaAiUsePrompt('What is affecting NVIDIA today and what should I watch next?')">Why is NVDA moving?</button>
+      <button type="button" onclick="movaAiUsePrompt('Analyse my portfolio. Where are my biggest concentration risks and opportunities?')">Analyse my portfolio</button>
+      <button type="button" onclick="movaAiUsePrompt('Project my portfolio growth over 1, 3 and 5 years using sensible bear, base and bull scenarios and explain the assumptions.')">Project portfolio growth</button>
+      <button type="button" onclick="movaAiUsePrompt('What current news could materially affect my portfolio holdings?')">News affecting my holdings</button>
+    </div>
+    <form class="mova-ai-form" onsubmit="return movaAskAiSubmit(event)">
+      <textarea id="movaAiQuestion" placeholder="e.g. Is AMD attractive at its current level? What risks are affecting my portfolio? How might my holdings perform over five years?"></textarea>
+      <button class="btn btn-primary" id="movaAiAskBtn" type="submit">Ask MOVA AI →</button>
+    </form>
+    <div class="mova-ai-meta">Uses MOVA portfolio data plus current web/news research when available. Projections are scenarios, not guarantees.</div>
+    <div class="mova-ai-thread" id="movaAiThread" aria-live="polite"></div>
+    <div class="mova-ai-tools"><button type="button" onclick="movaAiClear()">Clear conversation</button></div>
+  </section>
 
   <p class="notice m127-disclaimer">MOVA Trading provides market information, visual analysis and research context. It does not provide personalised financial advice or a recommendation to trade.</p>
 </section>
@@ -8386,3 +8416,34 @@ window.mfRenderDriverLive=function(data){
 @media(max-width:800px){header .brand{min-height:92px!important;overflow:visible!important}header .brand-wordmark{display:block!important;width:min(94vw,460px)!important;max-width:460px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0 auto!important}body.mova-mobile-welcome .mobile-auth-logo{display:block!important;width:min(92vw,440px)!important;max-width:440px!important;height:auto!important;max-height:none!important;object-fit:contain!important;margin:0 auto 8px!important}body.mova-mobile-welcome .mobile-auth-tagline{display:none!important}}
 </style>
 
+
+<script id="mova-ask-ai-js">
+const movaAiHistory=[];
+function movaAiEscape(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function movaAiPortfolioPayload(){
+  const rows=(Array.isArray(holdings)?holdings:[]).map(h=>({ticker:h.ticker,qty:Number(h.qty)||0,avg:Number(h.avg)||0,current:Number(h.current)||0}));
+  return {holdings:rows,cash:Number((typeof walletState!=='undefined'&&walletState)?walletState.balance:0)||0};
+}
+function movaAiUsePrompt(q){const el=document.getElementById('movaAiQuestion');if(!el)return;el.value=q;el.focus();}
+function movaAiAdd(role,text,sources=[]){
+  const host=document.getElementById('movaAiThread');if(!host)return;
+  const box=document.createElement('div');box.className='mova-ai-msg '+role;box.innerHTML=movaAiEscape(text);
+  if(Array.isArray(sources)&&sources.length){const src=document.createElement('div');src.className='mova-ai-sources';sources.slice(0,8).forEach((s,i)=>{if(!s||!s.url)return;const a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener';a.textContent=String(s.title||('Source '+(i+1))).slice(0,55);src.appendChild(a)});box.appendChild(src)}
+  host.appendChild(box);
+}
+function movaAiClear(){movaAiHistory.length=0;const host=document.getElementById('movaAiThread');if(host)host.innerHTML='';}
+async function movaAskAiSubmit(ev){
+  if(ev)ev.preventDefault();
+  const input=document.getElementById('movaAiQuestion'),btn=document.getElementById('movaAiAskBtn'),host=document.getElementById('movaAiThread');
+  const q=String(input&&input.value||'').trim();if(!q)return false;
+  movaAiAdd('user',q);movaAiHistory.push({role:'user',content:q});if(input)input.value='';
+  if(btn){btn.disabled=true;btn.textContent='Researching…'}
+  const thinking=document.createElement('div');thinking.className='mova-ai-thinking';thinking.textContent='MOVA AI is checking your portfolio, market context and relevant news…';if(host)host.appendChild(thinking);
+  try{
+    const r=await fetch('/api/ask-ai',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({question:q,portfolio:movaAiPortfolioPayload(),history:movaAiHistory.slice(-8)})});
+    const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||('Ask AI '+r.status));
+    thinking.remove();movaAiAdd('assistant',d.answer||'No answer returned.',d.sources||[]);movaAiHistory.push({role:'assistant',content:d.answer||''});
+  }catch(e){thinking.remove();movaAiAdd('error','MOVA AI could not complete this request: '+e.message)}finally{if(btn){btn.disabled=false;btn.textContent='Ask MOVA AI →'}}
+  return false;
+}
+</script>
