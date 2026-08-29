@@ -1,7 +1,6 @@
 {
   "name": "MOVA Trading",
   "short_name": "MOVA",
-  "description": "MOVA Trading market research and decision-support platform.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#070b10",
