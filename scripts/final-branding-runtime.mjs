@@ -15,9 +15,9 @@ const patch = String.raw`
 .brand{overflow:visible!important}
 .brand-wordmark{
   display:block!important;
-  width:420px!important;
+  width:340px!important;
   height:auto!important;
-  max-width:82vw!important;
+  max-width:76vw!important;
   max-height:none!important;
   object-fit:contain!important;
   object-position:center center!important;
@@ -26,9 +26,9 @@ const patch = String.raw`
 @media(max-width:800px){
   body:not(.mova-mobile-welcome) .brand-wordmark{
     display:block!important;
-    width:250px!important;
+    width:210px!important;
     height:auto!important;
-    max-width:78vw!important;
+    max-width:72vw!important;
     max-height:none!important;
     object-fit:contain!important;
     object-position:center center!important;
