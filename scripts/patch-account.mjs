@@ -51,5 +51,11 @@ if (!html.includes('/* V2.4.4 persistent mobile account button */')) {
   html = html.replace('</style>', css + '</style>');
 }
 
+// Avoid repeating "Market View" twice in the Home section.
+html = html.replace(
+  /<span class="eyebrow">MARKET VIEW<\/span>\s*<h2>Market View<\/h2>/,
+  '<span class="eyebrow">YOUR MARKETS</span>\n    <h2>Market View</h2>'
+);
+
 writeFileSync(file, html);
-console.log('MOVA mobile account access patch complete.');
+console.log('MOVA mobile account access + Market View label patch complete.');
