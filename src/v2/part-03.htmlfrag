@@ -1,0 +1,214 @@
+      <div class="driver-grid">
+        <div class="driver"><span class="eyebrow">YIELDS</span><b class="up">Supportive</b><p>Lower long-term yields reduce some valuation pressure on growth.</p></div>
+        <div class="driver"><span class="eyebrow">AI / SEMIS</span><b class="blue">Leading</b><p>Semiconductors continue to contribute heavily to Nasdaq strength.</p></div>
+        <div class="driver"><span class="eyebrow">OIL</span><b class="amber">Cooling</b><p>Energy weakness is easing part of the near-term inflation story.</p></div>
+      </div>
+    </div>
+    <aside class="card mood">
+      <span class="eyebrow">MOVA MARKET MOOD</span>
+      <div class="ring"><div class="ring-in"><div><b>68</b><span>Constructive</span></div></div></div>
+      <button class="btn" style="width:100%;margin-bottom:10px" onclick="showMood()">What does this mean?</button>
+      <div class="mood-row"><span>Breadth</span><b class="up">64% advancing</b></div>
+      <div class="mood-row"><span>Momentum</span><b class="up">Positive</b></div>
+      <div class="mood-row"><span>Volatility</span><b class="blue">Moderate</b></div>
+      <div class="mood-row"><span>Risk level</span><b class="amber">Selective</b></div>
+    </aside>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><span class="eyebrow">YOUR MARKETS</span><h2>Watchlist</h2></div><p>Signals explain context — they are not trade instructions.</p></div>
+    <div class="two">
+      <div class="card watch">
+        <div class="wh"><span>Asset</span><span>Price</span><span>Move</span><span>Signal</span></div>
+        <div class="wr"><div class="asset"><div class="logo">N</div><div><b>NVIDIA</b><small>NVDA</small></div></div><b>$141.52</b><b class="up">+2.8%</b><div><b class="up">Momentum strong</b><br><button class="btn" style="margin-top:4px;padding:5px 7px" onclick="openAsset('NVDA')">Read more</button></div></div>
+        <div class="wr"><div class="asset"><div class="logo">A</div><div><b>AMD</b><small>AMD</small></div></div><b>$167.14</b><b class="up">+1.6%</b><div><b class="blue">Trend intact</b><br><button class="btn" style="margin-top:4px;padding:5px 7px" onclick="openAsset('AMD')">Read more</button></div></div>
+        <div class="wr"><div class="asset"><div class="logo">Au</div><div><b>Gold</b><small>XAU/USD</small></div></div><b>$2,426</b><b class="up">+0.3%</b><div><b class="amber">Range-bound</b><br><button class="btn" style="margin-top:4px;padding:5px 7px" onclick="openAsset('GOLD')">Read more</button></div></div>
+        <div class="wr"><div class="asset"><div class="logo">O</div><div><b>WTI Oil</b><small>CL</small></div></div><b>$74.18</b><b class="down">−0.6%</b><div><b class="down">Under pressure</b><br><button class="btn" style="margin-top:4px;padding:5px 7px" onclick="openAsset('OIL')">Read more</button></div></div>
+      </div>
+      <div class="card ai-home">
+        <div class="ai-head"><div class="ai-dot">AI</div><div><span class="eyebrow">MOVA AI</span><h2 style="margin:4px 0 0">Ask the market, visually.</h2></div></div>
+        <p>Use MOVA Learn AI to ask about indicators, macro drivers, stock research and trading concepts in plain English.</p>
+        <button class="btn green" style="width:100%" onclick="go('learn');setTimeout(()=>document.getElementById('learnInput').focus(),100)">Open MOVA Learn AI →</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<main id="pulse" class="page">
+  <div class="section-head"><div><span class="eyebrow">MOVA PULSE</span><h2>Search a stock. Understand the move.</h2></div><p>Research workspace · search and drill-down</p></div>
+  <div class="pulse-search">
+    <input id="pulseInput" placeholder="Search any tracked stock — NVDA, AMD, AAPL, MSFT, AMZN, GOOGL…" onkeydown="if(event.key==='Enter')searchPulse()">
+    <button class="btn primary" onclick="searchPulse()">Search →</button>
+  </div>
+  <div id="pulseSearchResult" class="section"></div>
+  <section class="section metrics">
+    <div class="card metric"><small>Market Mood</small><b class="up">68</b><span>Constructive</span></div>
+    <div class="card metric"><small>Advancing</small><b>64%</b><span>Breadth positive</span></div>
+    <div class="card metric"><small>Nasdaq 100</small><b class="up">+0.84%</b><span>Technology leading</span></div>
+    <div class="card metric"><small>VIX</small><b>15.8</b><span>Volatility contained</span></div>
+  </section>
+  <section class="section">
+    <div class="card breadth breadth-full">
+      
+      <span class="eyebrow">BREADTH BY GROUP</span>
+      <h2 style="margin:5px 0 10px">Click a sector to view its stocks</h2>
+      <div id="breadthList"></div>
+      <div id="sectorResults" class="sector-results"></div>
+    
+    </div>
+  </section>
+</main>
+
+
+<section id="companyResearchView" class="company-research-view">
+  <div class="company-research-shell">
+    <button class="btn" onclick="closeCompanyResearch()">← Back to Pulse</button>
+    <div class="company-research-hero">
+      <div>
+        <span id="crEyebrow" class="eyebrow">COMPANY RESEARCH</span>
+        <h1 id="crName">Company</h1>
+        <p id="crIntro"></p>
+      </div>
+      <div class="cr-price-card">
+        <span>Current price</span>
+        <b id="crPrice">$0.00</b>
+        <small id="crMove">0.00%</small>
+      </div>
+    </div>
+
+    <div class="cr-tabs">
+      <button class="active" data-crtab="overview" onclick="switchCRTab('overview')">Overview</button>
+      <button data-crtab="market" onclick="switchCRTab('market')">Market chart</button>
+      <button data-crtab="history" onclick="switchCRTab('history')">Company history</button>
+      <button data-crtab="financials" onclick="switchCRTab('financials')">Financials</button>
+      <button data-crtab="payouts" onclick="switchCRTab('payouts')">Payouts</button>
+      <button data-crtab="investment" onclick="switchCRTab('investment')">Investment case</button>
+    </div>
+
+    <div id="cr-overview" class="cr-panel active">
+      <div class="cr-grid two-up">
+        <div class="card cr-card"><span class="eyebrow">WHO THEY ARE</span><h3 id="crWhoTitle"></h3><p id="crWho"></p></div>
+        <div class="card cr-card"><span class="eyebrow">WHAT THEY DO</span><h3>Core business</h3><p id="crWhat"></p></div>
+      </div>
+      <div class="cr-grid four-up" id="crFacts"></div>
+      <div class="card cr-card">
+        <span class="eyebrow">BUSINESS MIX</span>
+        <h3>Where revenue comes from</h3>
+        <div id="crBusinessMix" class="business-mix"></div>
+      </div>
+    </div>
+
+    
+    <div id="cr-market" class="cr-panel">
+      <div class="card cr-card market-workspace">
+        <div class="market-toolbar-head">
+          <div><span class="eyebrow">INTERACTIVE MARKET CHART</span><h3 id="chartCompanyTitle">Current market analysis</h3><p>Switch chart type, change timeframe, add indicators and draw your own analysis directly on the chart.</p></div>
+          <div class="market-status"><span>Market feed</span><b id="chartLastPrice">$0.00</b><small id="chartLastMove">0.00%</small></div>
+        </div>
+        <div class="chart-toolbar">
+          <div class="tool-group"><span>Chart</span><button id="chartLineBtn" class="active" onclick="setChartType('line')">Line</button><button id="chartCandleBtn" onclick="setChartType('candles')">Candlestick</button></div>
+          <div class="tool-group"><span>Time</span><button data-tf="1D" onclick="setTimeframe('1D')">1D</button><button data-tf="5D" onclick="setTimeframe('5D')">5D</button><button data-tf="1M" class="active" onclick="setTimeframe('1M')">1M</button><button data-tf="3M" onclick="setTimeframe('3M')">3M</button><button data-tf="1Y" onclick="setTimeframe('1Y')">1Y</button>
+            <button data-tf="5Y" onclick="setTimeframe('5Y')">5Y</button>
+            <button data-tf="MAX" onclick="setTimeframe('MAX')">MAX</button></div>
+          <div class="tool-group"><span>Indicators</span><button id="smaBtn" onclick="toggleIndicator('sma')">SMA 20</button><button id="emaBtn" onclick="toggleIndicator('ema')">EMA 50</button><button id="rsiBtn" onclick="toggleIndicator('rsi')">RSI</button>
+            <button class="tool-help-btn" onclick="showChartHelp('indicators')">?</button></div>
+          <div class="tool-group"><span>Draw</span><button id="drawTrendBtn" onclick="setDrawMode('trend')">Trendline</button><button id="drawHBtn" onclick="setDrawMode('horizontal')">Horizontal</button><button onclick="undoDrawing()">Undo</button><button onclick="clearDrawings()">Clear</button>
+            <button class="tool-help-btn" onclick="showChartHelp('drawing')">?</button></div>
+        </div>
+        <div id="activeIndicatorLegend" class="active-indicator-legend"><span>No indicators active</span></div>
+        <div class="chart-shell"><canvas id="marketCanvas" width="1200" height="520"></canvas><div id="chartHint" class="chart-hint">Select a drawing tool, then click on the chart.</div></div>
+        <div id="rsiPanel" class="rsi-panel hidden"><canvas id="rsiCanvas" width="1200" height="150"></canvas></div>
+        <div id="chartDataStatus" style="margin-top:8px;color:#708697;font-size:8px">Chart data is illustrative in this build until the live OHLC feed is connected.</div><div class="chart-stats" id="chartStats"></div>
+        <div class="chart-learning-panel">
+          <div class="chart-learning-head">
+            <div>
+              <span class="eyebrow">CHART LEARNING GUIDE</span>
+              <h3>What the tools mean and how to use them</h3><small style="color:#718697">Click a guide card for the explanation. Indicator buttons above switch the overlay on/off immediately.</small>
+            </div>
+            <button class="btn" onclick="showChartHelp('overview')">Chart basics</button>
+          </div>
+          <div class="chart-guide-grid">
+            <button class="chart-guide-card" onclick="showChartHelp('sma')"><span>SMA 20</span><b>Short-term trend</b><small>Compare price with its recent average.</small></button>
+            <button class="chart-guide-card" onclick="showChartHelp('ema')"><span>EMA 50</span><b>Trend with more weight on recent price</b><small>Useful for direction and dynamic support/resistance.</small></button>
+            <button class="chart-guide-card" onclick="showChartHelp('rsi')"><span>RSI</span><b>Momentum</b><small>See whether buying or selling pressure is strengthening or fading.</small></button>
+            <button class="chart-guide-card" onclick="showChartHelp('trend')"><span>TRENDLINE</span><b>Connect meaningful swing points</b><small>Use repeated touches, not arbitrary points.</small></button>
+            <button class="chart-guide-card" onclick="showChartHelp('horizontal')"><span>HORIZONTAL</span><b>Support & resistance</b><small>Mark prices where the market repeatedly reacted.</small></button>
+            <button class="chart-guide-card" onclick="showChartHelp('candles')"><span>CANDLESTICKS</span><b>Read price behaviour</b><small>Open, high, low and close show the battle within each period.</small></button>
+          </div>
+          <div id="chartHelpDetail" class="chart-help-detail"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cr-history" class="cr-panel">
+      <div class="card cr-card">
+        <span class="eyebrow">COMPANY HISTORY</span><h3>How the business evolved</h3><p id="crHistorySummary"></p>
+        <div id="crHistoryStats" class="cr-grid four-up"></div>
+      </div>
+      <div class="card cr-card"><span class="eyebrow">KEY MILESTONES</span><div id="crMilestones" class="timeline"></div></div>
+    </div>
+
+    <div id="cr-financials" class="cr-panel">
+      <div class="cr-grid four-up" id="crFinancialStats"></div>
+      <div class="card cr-card"><span class="eyebrow">FUNDAMENTAL TREND</span><h3>Revenue / earnings direction</h3><div id="crFinancialBars" class="financial-bars"></div></div>
+    </div>
+
+    <div id="cr-payouts" class="cr-panel">
+      <div class="cr-grid four-up" id="crPayoutStats"></div>
+      <div class="card cr-card"><span class="eyebrow">PAYOUT PROFILE</span><h3 id="crPayoutTitle"></h3><p id="crPayoutText"></p><div id="crPayoutTimeline" class="payout-timeline"></div></div>
+    </div>
+
+    <div id="cr-investment" class="cr-panel">
+      <div class="cr-grid three-up">
+        <div class="card cr-card"><span class="eyebrow">BULL CASE</span><h3 class="up">What could go right</h3><ul id="crBull"></ul></div>
+        <div class="card cr-card"><span class="eyebrow">BEAR CASE</span><h3 class="down">What could go wrong</h3><ul id="crBear"></ul></div>
+        <div class="card cr-card"><span class="eyebrow">WATCHLIST</span><h3 class="amber">What to monitor</h3><ul id="crWatch"></ul></div>
+      </div>
+      <div class="card cr-card"><span class="eyebrow">MOVA VIEW</span><h3 id="crMovaSignal"></h3><p id="crMovaView"></p></div>
+    </div>
+  </div>
+</section>
+
+<main id="learn" class="page">
+  <section id="learnLanding">
+    <div class="card learn-hero">
+      <div class="learn-layout">
+        <div>
+          <span class="eyebrow">MOVA LEARN</span>
+          <h1>Learn the market.<br>Understand the move.</h1>
+          <p>Every learning path below opens into a visual study module. The AI search replaces the old A–Z jargon page — ask a question in plain English instead.</p>
+          <div class="learn-ai">
+            <div class="learn-ai-title"><div class="ai-dot" style="width:35px;height:35px;border-radius:11px">AI</div><div><b>Ask MOVA Learn AI</b><small>Indicators, stocks, macro, risk and trading concepts.</small></div></div>
+            <div class="learn-ai-input"><input id="learnInput" placeholder="Ask: What is RSI? Why do yields affect tech stocks?" onkeydown="if(event.key==='Enter')askLearn()"><button onclick="askLearn()">Ask →</button></div>
+            <div class="chips"><button onclick="prefillLearn('What is RSI and how do I use it?')">What is RSI?</button><button onclick="prefillLearn('Why do bond yields affect Nasdaq stocks?')">Why yields affect tech?</button><button onclick="prefillLearn('Explain supply and demand zones')">Supply & demand</button><button onclick="prefillLearn('How should I use a stop loss?')">Stop losses</button></div>
+            <div id="learnAnswer" class="ai-answer"></div>
+          </div>
+        </div>
+        <div class="learn-visual">
+          <svg viewBox="0 0 340 220" preserveAspectRatio="none">
+            <defs><linearGradient id="la" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#42bbff" stop-opacity=".23"/><stop offset="1" stop-color="#42bbff" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0 176 C30 164 52 142 82 148 S128 115 157 121 S202 84 234 94 S287 51 340 40 L340 220 L0 220Z" fill="url(#la)"/>
+            <path d="M0 176 C30 164 52 142 82 148 S128 115 157 121 S202 84 234 94 S287 51 340 40" fill="none" stroke="#42bbff" stroke-width="4"/>
+            <circle cx="82" cy="148" r="5" fill="#78ef31"/><circle cx="157" cy="121" r="5" fill="#78ef31"/><circle cx="234" cy="94" r="5" fill="#78ef31"/><circle cx="340" cy="40" r="5" fill="#78ef31"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="learn-tabs">
+      <button data-ltab="paths" class="active" onclick="learnTab('paths')">Learning paths</button>
+      <button data-ltab="tools" onclick="learnTab('tools')">Training tools</button>
+    </div>
+    <section id="learnPaths" class="learn-panel active section">
+      <div class="section-head"><div><span class="eyebrow">STUDY MATERIALS</span><h2>Choose a learning path</h2></div><p>Every card opens a visual lesson.</p></div>
+      <div class="paths">
+        <article class="card path" onclick="openStudy('start')"><span class="eyebrow">01 · BEGINNER</span><h3>Start here</h3><p>How markets work, order types, assets and the mechanics behind price.</p><footer><span>Visual module</span><span>12 topics</span></footer></article>
+        <article class="card path" onclick="openStudy('technical')"><span class="eyebrow">02 · CORE SKILL</span><h3>Technical analysis</h3><p>Trend, structure, support, resistance, RSI, volume and moving averages.</p><footer><span>Visual module</span><span>18 topics</span></footer></article>
+        <article class="card path" onclick="openStudy('macro')"><span class="eyebrow">03 · CONTEXT</span><h3>Macro & market drivers</h3><p>Rates, yields, inflation, jobs, the dollar and why macro moves assets.</p><footer><span>Visual module</span><span>14 topics</span></footer></article>
+        <article class="card path" onclick="openStudy('stocks')"><span class="eyebrow">04 · RESEARCH</span><h3>Stocks & fundamentals</h3><p>Revenue, margins, cash flow, valuation, earnings and guidance.</p><footer><span>Visual module</span><span>16 topics</span></footer></article>
+        <article class="card path" onclick="openStudy('commodities')"><span class="eyebrow">05 · SPECIALIST</span><h3>Commodities</h3><p>Gold, oil and gas — supply, demand, inventories and currency effects.</p><footer><span>Visual module</span><span>10 topics</span></footer></article>
+        <article class="card path" onclick="openStudy('risk')"><span class="eyebrow">06 · ESSENTIAL</span><h3>Risk management</h3><p>Position size, stops, invalidation, drawdown and portfolio exposure.</p><footer><span>Visual module</span><span>11 topics</span></footer></article>
+        <article class="card path" onclick="openStudy('psychology')"><span class="eyebrow">07 · BEHAVIOUR</span><h3>Trading psychology</h3><p>FOMO, patience, revenge trading, bias and repeatable decision-making.</p><footer><span>Visual module</span><span>9 topics</span></footer></article>
+        <article class="card path" onclick="openStudy('playbooks')"><span class="eyebrow">08 · PRACTICE</span><h3>Setups & playbooks</h3><p>Turn analysis into repeatable plans with entry, invalidation and review.</p><footer><span>Visual module</span><span>12 topics</span></footer></article>
+      </div>
+    </section>
+    <section id="learnTools" class="learn-panel section">
