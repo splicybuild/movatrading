@@ -29,7 +29,7 @@ html = html.replace(
     const initial=(p.firstName||'M').trim().charAt(0).toUpperCase()||'M';
     mobileProfileAvatar.textContent=initial;
     mobileProfileName.textContent=p.firstName||'Profile';
-    chip.setAttribute('aria-label',`Open MOVA account for ${p.firstName||'profile'}`);
+    chip.setAttribute('aria-label',\`Open MOVA account for \${p.firstName||'profile'}\`);
   }
   function openAccountAccess(){
     if(!isMobileMova())return;
