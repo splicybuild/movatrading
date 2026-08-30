@@ -17,6 +17,7 @@ const NAMES = {
   NG:["Natural Gas","Henry Hub Natural Gas"]
 };
 const INTERVALS = new Set(["1min","5min","15min","30min","45min","1h","2h","4h","8h","1day","1week","1month"]);
+const PREPOST_INTERVALS = new Set(["1min","5min","15min","30min"]);
 
 function normalizeAlias(raw){
   let a=String(raw||"").trim().toUpperCase();
@@ -28,6 +29,7 @@ function normalizeAlias(raw){
   if(["NASDAQ100","NASDAQ 100","NASDAQ-100"].includes(a))a="NDX";
   return a;
 }
+function isEquityLike(alias){return !["GOLD","SILVER","OIL","NG","NDX"].includes(alias)}
 
 async function requestTD(url,key){
   const res=await fetch(url,{headers:{"Accept":"application/json","Authorization":`apikey ${key}`}});
@@ -36,12 +38,13 @@ async function requestTD(url,key){
   return data;
 }
 
-async function timeSeries(symbol,interval,outputsize,key){
+async function timeSeries(symbol,interval,outputsize,key,prepost=false){
   const u=new URL("https://api.twelvedata.com/time_series");
   u.searchParams.set("symbol",symbol);
   u.searchParams.set("interval",interval);
   u.searchParams.set("outputsize",String(outputsize));
   u.searchParams.set("order","desc");
+  if(prepost)u.searchParams.set("prepost","true");
   return requestTD(u,key);
 }
 
@@ -90,14 +93,21 @@ async function resolveCommodity(alias,key){
   return null;
 }
 
-async function firstWorking(candidates,interval,outputsize,key){
+async function firstWorking(candidates,interval,outputsize,key,wantPrepost=false){
   let last=null;
   for(let i=0;i<candidates.length;i++){
     const symbol=candidates[i];
+    if(wantPrepost){
+      try{
+        const d=await timeSeries(symbol,interval,outputsize,key,true);
+        const values=Array.isArray(d.values)?d.values:[];
+        if(values.length)return {symbol,data:d,values,index:i,extendedHours:true};
+      }catch(e){last=e;}
+    }
     try{
-      const d=await timeSeries(symbol,interval,outputsize,key);
+      const d=await timeSeries(symbol,interval,outputsize,key,false);
       const values=Array.isArray(d.values)?d.values:[];
-      if(values.length)return {symbol,data:d,values,index:i};
+      if(values.length)return {symbol,data:d,values,index:i,extendedHours:false};
       last=new Error(`No historical values returned for ${symbol}`);
     }catch(e){last=e;}
   }
@@ -115,6 +125,7 @@ export default{
   const interval=u.searchParams.get("interval")||"1day";
   const outputsize=Math.max(10,Math.min(5000,Number(u.searchParams.get("outputsize")||30)));
   if(!INTERVALS.has(interval))return Response.json({error:"Unsupported interval"},{status:400});
+  const wantPrepost=isEquityLike(alias)&&PREPOST_INTERVALS.has(interval);
 
   try{
     let candidates=DIRECT[alias]?[...DIRECT[alias]]:[];
@@ -125,12 +136,9 @@ export default{
       const commodity=await resolveCommodity(alias,key);
       if(commodity)candidates=[commodity];
     }
+    if(alias==="NDX")candidates=["NDX","NDX:NASDAQ","NASDAQ 100","NASDAQ-100"];
 
-    if(alias==="NDX"){
-      candidates=["NDX","NDX:NASDAQ","NASDAQ 100","NASDAQ-100"];
-    }
-
-    if(!candidates.length && NAMES[alias]){
+    if(!candidates.length&&NAMES[alias]){
       for(const name of NAMES[alias]){
         const rows=await symbolSearch(name,key);
         const preferred=rows.find(x=>{
@@ -143,9 +151,9 @@ export default{
       if(candidates.length)mode="alternate";
     }
 
-    if(!candidates.length && /^[A-Z0-9.\-]{1,12}$/.test(alias)){
+    if(!candidates.length&&/^[A-Z0-9.\-]{1,12}$/.test(alias)){
       const rows=await symbolSearch(alias,key);
-      const exact=rows.find(x=>String(x.symbol||"").toUpperCase()===alias && /stock|equity|depositary/i.test(String(x.instrument_type||"")));
+      const exact=rows.find(x=>String(x.symbol||"").toUpperCase()===alias&&/stock|equity|depositary/i.test(String(x.instrument_type||"")));
       const preferred=exact||rows.find(x=>/stock|equity|depositary/i.test(String(x.instrument_type||"")))||rows[0];
       candidates=[preferred?.symbol,alias,`${alias}:NASDAQ`,`${alias}:NYSE`].filter(Boolean);
       candidates=[...new Set(candidates)];
@@ -156,20 +164,17 @@ export default{
 
     let result;
     try{
-      result=await firstWorking(candidates,interval,outputsize,key);
+      result=await firstWorking(candidates,interval,outputsize,key,wantPrepost);
       if(result.index>0)mode="alternate";
     }catch(primaryError){
       if(alias==="NDX"){
-        result=await firstWorking(["QQQ","QQQ:NASDAQ"],interval,outputsize,key);
+        result=await firstWorking(["QQQ","QQQ:NASDAQ"],interval,outputsize,key,wantPrepost);
         mode="proxy";
         proxyLabel="QQQ used as Nasdaq-100 proxy";
-      }else{
-        throw primaryError;
-      }
+      }else throw primaryError;
     }
 
     const earliestValue=await earliest(result.symbol,interval,key);
-
     return Response.json({
       source:"Twelve Data",
       requested:alias,
@@ -177,15 +182,12 @@ export default{
       mode,
       proxyLabel,
       earliest:earliestValue,
+      extendedHours:Boolean(result.extendedHours),
       meta:result.data.meta||{},
       values:result.values
-    },{headers:{"Cache-Control":"s-maxage=300, stale-while-revalidate=1800"}});
+    },{headers:{"Cache-Control":"s-maxage=60, stale-while-revalidate=300"}});
   }catch(error){
-    return Response.json({
-      error:error.message||"Historical data unavailable",
-      requested:alias,
-      mode:"unavailable"
-    },{status:502});
+    return Response.json({error:error.message||"Historical data unavailable",requested:alias,mode:"unavailable"},{status:502});
   }
  }
 };
