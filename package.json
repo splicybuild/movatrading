@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-v2.mjs && node scripts/patch-account.mjs && node scripts/patch-chart-gaps.mjs"
+    "build": "node scripts/build-v2.mjs && node scripts/patch-account.mjs && node scripts/patch-chart-gaps.mjs && patch-nav-underline.mjs"
   }
 }
