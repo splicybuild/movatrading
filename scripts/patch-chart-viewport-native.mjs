@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
-const decl=/let chartData=([^;]+);/;
+const decl=/let\s+chartData\s*=\s*([^;]+);/;
 const m=html.match(decl);
 if(!m) throw new Error('Native chart viewport patch: chartData declaration not found');
 
@@ -79,9 +79,7 @@ function setupNativeChartViewport(){
 setTimeout(setupNativeChartViewport,250);setTimeout(setupNativeChartViewport,900);`;
 
 html=html.replace(decl,native);
-
-// Keep a full copy whenever fresh live OHLC replaces the chart data.
-html=html.replace(/chartData=clean;/g,'chartFullData=clean.slice();chartPanAnchor=1;applyChartViewport();');
+html=html.replace(/chartData\s*=\s*clean;/g,'chartFullData=clean.slice();chartPanAnchor=1;applyChartViewport();');
 
 const css=`
 /* Native MOVA chart zoom and pan */
