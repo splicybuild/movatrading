@@ -81,7 +81,7 @@ const replacement=`async function hydrateCompanyHistoryLive(k,a){
   crBusinessMix.innerHTML='<div class="cr-fact"><span>SEGMENT DATA</span><b>Finnhub company profile does not provide audited revenue-by-segment percentages. MOVA will not display estimated splits.</b></div>';
 
   try{
-    const history=await fetchJson('/api/company-profile?ticker='+encodeURIComponent(k)+'&name='+encodeURIComponent(a.n),6500);
+    const history=await fetchJson('/api/company-history?rev=20260831e&ticker='+encodeURIComponent(k)+'&name='+encodeURIComponent(a.n),12000);
     const summary=history?.summary||history?.overview||'';
     const business=history?.sections?.business||history?.business||history?.sections?.products||history?.products||'';
     const origins=history?.sections?.origins||history?.origins||summary;
@@ -117,4 +117,4 @@ const replacement=`async function hydrateCompanyHistoryLive(k,a){
 
 html=html.slice(0,startAt)+replacement+html.slice(endAt);
 fs.writeFileSync(file,html);
-console.log('Patched company profile with Finnhub-first live profile and resilient reference enrichment.');
+console.log('Patched company profile with direct company-history enrichment and resilient timeout.');
