@@ -55,7 +55,11 @@ if (!html.includes('/* V2.4.4 persistent mobile account button */')) {
 // Avoid duplicate Market View label.
 html = html.replace(
   /<span class="eyebrow">MARKET VIEW<\/span>\s*<h2>Market View<\/h2>/,
-  () => '<span class="eyebrow">YOUR MARKETS</span>\n    <h2>Market View</h2>'
+  () => '<span class="eyebrow">YOUR MARKETS</span>\n    <h2>WATCH LIST</h2>'
+);
+html = html.replace(
+  /<h([1-6])[^>]*>\s*Your Watch List\s*<\/h\1>/i,
+  ''
 );
 
 // Better timeframe sample sizes.
