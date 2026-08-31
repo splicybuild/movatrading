@@ -65,7 +65,7 @@ const replacement=`async function hydrateCompanyHistoryLive(k,a){
   crIntro.textContent=profileSummary;
   crWho.textContent=profileSummary;
   crWhat.textContent=profile.industry
-    ?'Finnhub classifies '+companyName+' in the '+profile.industry+' industry. Detailed operating history is loaded separately from verified company-history sources.'
+    ?'Finnhub classifies '+companyName+' in the '+profile.industry+' industry. Detailed operating history is loaded separately from verified company reference sources.'
     :'A detailed business classification is not currently available from Finnhub.';
   crFacts.innerHTML=factRows([['Industry',industry],['Ticker',ticker],['Current price',priceText],['Exchange',exchange]]);
   crHistoryStats.innerHTML=factRows([['Current',priceText],['Latest move',moveText],['Industry',industry],['IPO',ipo]]);
@@ -81,7 +81,7 @@ const replacement=`async function hydrateCompanyHistoryLive(k,a){
   crBusinessMix.innerHTML='<div class="cr-fact"><span>SEGMENT DATA</span><b>Finnhub company profile does not provide audited revenue-by-segment percentages. MOVA will not display estimated splits.</b></div>';
 
   try{
-    const history=await fetchJson('/api/company-history?ticker='+encodeURIComponent(k)+'&name='+encodeURIComponent(a.n),6500);
+    const history=await fetchJson('/api/company-profile?ticker='+encodeURIComponent(k)+'&name='+encodeURIComponent(a.n),6500);
     const summary=history?.summary||history?.overview||'';
     const business=history?.sections?.business||history?.business||history?.sections?.products||history?.products||'';
     const origins=history?.sections?.origins||history?.origins||summary;
@@ -94,7 +94,7 @@ const replacement=`async function hydrateCompanyHistoryLive(k,a){
     root.innerHTML=factRows([
       ['Founded',founded],['Founder(s)',historyFounders||'Not identified'],['Headquarters',headquarters],
       ['Country',country],['IPO',ipo],['Website',website||history?.website||'Not available'],
-      ['Research source','Finnhub live profile + company-history enrichment'+(quote?.provider?' + '+quote.provider+' quote':'')]
+      ['Research source','Finnhub live profile + '+(history?.sourceLabel||'company reference enrichment')+(quote?.provider?' + '+quote.provider+' quote':'')]
     ]);
     const rev=history?.revenueContext||null;
     const revItems=Array.isArray(rev?.items)?rev.items.filter(x=>x?.description):[];
@@ -108,7 +108,7 @@ const replacement=`async function hydrateCompanyHistoryLive(k,a){
     }
   }catch(_){
     root.innerHTML=factRows([
-      ['Founded','History source temporarily unavailable'],['Founder(s)','History source temporarily unavailable'],['Headquarters','History source temporarily unavailable'],
+      ['Founded','Reference source temporarily unavailable'],['Founder(s)','Reference source temporarily unavailable'],['Headquarters','Reference source temporarily unavailable'],
       ['Country',country],['IPO',ipo],['Website',website||'Not available'],
       ['Research source',fundamentals?'Finnhub live profile'+(quote?.provider?' + '+quote.provider+' quote':''):'Company profile feeds temporarily unavailable']
     ]);
@@ -117,4 +117,4 @@ const replacement=`async function hydrateCompanyHistoryLive(k,a){
 
 html=html.slice(0,startAt)+replacement+html.slice(endAt);
 fs.writeFileSync(file,html);
-console.log('Patched company profile with immediate Finnhub render and non-blocking history enrichment.');
+console.log('Patched company profile with Finnhub-first live profile and resilient reference enrichment.');
