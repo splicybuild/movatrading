@@ -3,6 +3,12 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/api/company-profile",
+      "destination": "/api/company-history"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
