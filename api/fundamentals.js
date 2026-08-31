@@ -1,3 +1,9 @@
+const PROD_BASE="https://movatrading-vert.vercel.app";
+async function proxyProduction(request){
+  const incoming=new URL(request.url),target=new URL("/api/fundamentals",PROD_BASE);target.search=incoming.search;
+  const r=await fetch(target,{headers:{Accept:"application/json"}}),body=await r.text();
+  return new Response(body,{status:r.status,headers:{"Content-Type":r.headers.get("content-type")||"application/json; charset=utf-8","Cache-Control":"public, s-maxage=300, stale-while-revalidate=900","X-MOVA-Preview-Source":"production-api"}});
+}
 async function fh(path,key){
   const u=new URL(`https://finnhub.io/api/v1/${path}`);u.searchParams.set("token",key);
   const r=await fetch(u,{headers:{"Accept":"application/json"}});const d=await r.json().catch(()=>({}));
@@ -6,7 +12,11 @@ async function fh(path,key){
 function num(v){const n=Number(v);return Number.isFinite(n)?n:null;}
 export default{async fetch(request){
   if(request.method!=="GET")return Response.json({error:"Method not allowed"},{status:405});
-  const key=process.env.FINNHUB_API_KEY;if(!key)return Response.json({error:"FINNHUB_API_KEY is not configured"},{status:500});
+  const key=process.env.FINNHUB_API_KEY;
+  if(!key){
+    if(process.env.VERCEL_ENV==="preview")return proxyProduction(request);
+    return Response.json({error:"FINNHUB_API_KEY is not configured"},{status:500});
+  }
   const u=new URL(request.url),symbol=String(u.searchParams.get("symbol")||"").trim().toUpperCase();
   if(!symbol)return Response.json({error:"Symbol required"},{status:400});
   const [pr,mr]=await Promise.allSettled([fh(`stock/profile2?symbol=${encodeURIComponent(symbol)}`,key),fh(`stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all`,key)]);
