@@ -1,9 +1,9 @@
 {
   "name": "mova-trading-v2",
-  "version": "2.4.4",
+  "version": "2.4.6",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-v2.mjs && node scripts/patch-account.mjs"
+    "build": "node scripts/build-v2.mjs && node scripts/patch-account.mjs && node scripts/patch-chart-gaps.mjs"
   }
 }
