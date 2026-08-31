@@ -6,7 +6,16 @@ let html=readFileSync(file,'utf8');
 const css=`
 /* MOVA desktop account + expanded chart views */
 .mova-desktop-account-btn{display:none}
-.mova-desktop-account-modal{position:fixed;inset:0;z-index:2147483550;background:rgba(2,7,12,.78);backdrop-filter:blur(12px);align-items:flex-start;justify-content:flex-end;padding:82px 26px 26px}
+.mova-desktop-account-modal{
+    position:fixed;
+    inset:0;
+    z-index:2147483550;
+    background:rgba(2,7,12,.78);
+    backdrop-filter:blur(12px);
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+}
 .mova-desktop-account-modal.open{display:flex}
 .mova-account-panel{width:min(410px,calc(100vw - 36px));max-height:calc(100vh - 108px);overflow:auto;background:#07131d;border:1px solid rgba(66,187,255,.25);border-radius:22px;padding:22px;box-shadow:0 28px 80px rgba(0,0,0,.52)}
 .mova-account-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}.mova-account-head h3{font-size:24px;margin:0}.mova-account-close{width:38px;height:38px;border-radius:50%;border:1px solid #193547;background:#081721;color:#dbe8ef;font-size:20px;cursor:pointer}.mova-account-copy{color:#8ca1b1;line-height:1.55;margin:0 0 18px}.mova-account-actions{display:grid;gap:10px}.mova-account-primary,.mova-account-secondary,.mova-account-danger{min-height:48px;border-radius:13px;font-weight:900;cursor:pointer}.mova-account-primary{border:0;background:linear-gradient(135deg,#209dff,#42bbff);color:#041018}.mova-account-secondary{border:1px solid #24485d;background:#091a25;color:#eef5f8}.mova-account-danger{border:1px solid rgba(255,102,115,.35);background:rgba(255,102,115,.08);color:#ff8792}.mova-account-form{display:grid;gap:11px}.mova-account-form label{display:grid;gap:6px;color:#8ba0af;font-size:11px;font-weight:800;letter-spacing:.06em}.mova-account-form input,.mova-account-form select{width:100%;box-sizing:border-box;min-height:46px;border:1px solid #193e54;border-radius:12px;background:#05111a;color:#f2f7fa;padding:0 12px;font:inherit}.mova-account-note{font-size:11px;line-height:1.5;color:#6f8798;margin-top:12px}.mova-account-profile{display:grid;gap:11px}.mova-account-profile strong{font-size:22px}.mova-account-profile span{color:#8ba0af}.mova-account-avatar-large{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#42bbff,#78ef31);color:#041018;font-size:20px;font-weight:1000;margin-bottom:5px}
