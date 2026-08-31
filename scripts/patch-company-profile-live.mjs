@@ -7,124 +7,114 @@ const start='async function hydrateCompanyHistoryLive(k,a){';
 const end='\nfunction renderReportedRows';
 const startAt=html.indexOf(start);
 const endAt=startAt>=0?html.indexOf(end,startAt):-1;
-if(startAt<0||endAt<0)throw new Error('Could not locate hydrateCompanyHistoryLive in dist/index.html');
+if(startAt<0||endAt<0)throw new Error('Could not locate hydrateCompanyHistoryLive in '+file);
 
 const replacement=`async function hydrateCompanyHistoryLive(k,a){
   const root=document.getElementById('crOriginFacts');
   const esc=v=>String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
-  const fetchJson=async url=>{const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();};
-  const money=n=>{
-    const v=Number(n);if(!Number.isFinite(v))return 'Not available';
-    return '$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fetchJson=async(url,timeout=7000)=>{
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),timeout);
+    try{const r=await fetch(url,{signal:ctrl.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
+    finally{clearTimeout(timer)}
   };
+  const money=n=>{const v=Number(n);return Number.isFinite(v)?'$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'Live quote unavailable'};
+  const factRows=rows=>rows.map(x=>'<div class="cr-fact"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('');
+
+  crWho.textContent='Loading live company profile…';
+  crWhat.textContent='Loading live company profile…';
+  crFacts.innerHTML=factRows([['Industry','Loading…'],['Ticker',k],['Current price','Loading…'],['Exchange','Loading…']]);
+  root.innerHTML=factRows([['Founded','Loading verified history…'],['Founder(s)','Loading verified history…'],['Headquarters','Loading verified history…'],['Research source','Finnhub live profile']]);
+  crBusinessMix.innerHTML='<div class="cr-fact"><span>SEGMENT DATA</span><b>Loading verified company information…</b></div>';
+
+  if(location.protocol==='file:'){
+    root.innerHTML=factRows([['Founded','Unavailable in local file preview'],['Founder(s)','Unavailable in local file preview'],['Headquarters','Unavailable in local file preview'],['Research source','Deploy MOVA to load Finnhub data']]);
+    return;
+  }
+
+  const [fundResult,marketResult]=await Promise.allSettled([
+    fetchJson('/api/fundamentals?symbol='+encodeURIComponent(k),7000),
+    fetchJson('/api/market?symbols='+encodeURIComponent(k),7000)
+  ]);
+  const fundamentals=fundResult.status==='fulfilled'?fundResult.value:null;
+  const market=marketResult.status==='fulfilled'?marketResult.value:null;
+  const profile=fundamentals?.profile||{};
+  const liveMarket=Array.isArray(market?.assets)?market.assets.find(x=>x.ticker===k):null;
+  const cachedLive=(typeof liveQuotes!=='undefined'&&liveQuotes?.get)?liveQuotes.get(k):null;
+  const quote=liveMarket||cachedLive||null;
+  const companyName=profile.name||a.n||k;
+  const industry=profile.industry||'Not available from Finnhub';
+  const exchange=profile.exchange||'Not available from Finnhub';
+  const country=profile.country||'Not available from Finnhub';
+  const ticker=profile.ticker||k;
+  const website=profile.website||'';
+  const ipo=profile.ipo||'Not available from Finnhub';
+  const priceText=quote?.priceNative!=null?money(quote.priceNative):'Live quote unavailable';
+  const pct=Number(quote?.changePct);
+  const moveText=Number.isFinite(pct)?((pct>=0?'+':'')+pct.toFixed(2)+'%'):'—';
+
+  crName.textContent=companyName;
+  crWhoTitle.textContent=companyName;
+  crEyebrow.textContent=(profile.industry||a.sector||'Company')+' · '+ticker;
+  if(quote?.priceNative!=null){crPrice.textContent=priceText;crMove.textContent=moveText;crMove.className=pct>=0?'up':'down'}
+
+  const profileSummary=companyName+' is a publicly traded company'+
+    (profile.industry?' in the '+profile.industry+' industry':'')+
+    (profile.exchange?' listed on '+profile.exchange:'')+
+    (profile.country?' and based in '+profile.country:'')+'.';
+  crIntro.textContent=profileSummary;
+  crWho.textContent=profileSummary;
+  crWhat.textContent=profile.industry
+    ?'Finnhub classifies '+companyName+' in the '+profile.industry+' industry. Detailed operating history is loaded separately from verified company-history sources.'
+    :'A detailed business classification is not currently available from Finnhub.';
+  crFacts.innerHTML=factRows([['Industry',industry],['Ticker',ticker],['Current price',priceText],['Exchange',exchange]]);
+  crHistoryStats.innerHTML=factRows([['Current',priceText],['Latest move',moveText],['Industry',industry],['IPO',ipo]]);
+  root.innerHTML=factRows([
+    ['Founded','Loading verified history…'],
+    ['Founder(s)','Loading verified history…'],
+    ['Headquarters','Loading verified history…'],
+    ['Country',country],
+    ['IPO',ipo],
+    ['Website',website||'Not available'],
+    ['Research source',fundamentals?'Finnhub live profile'+(quote?.provider?' + '+quote.provider+' quote':''):'Finnhub profile temporarily unavailable']
+  ]);
+  crBusinessMix.innerHTML='<div class="cr-fact"><span>SEGMENT DATA</span><b>Finnhub company profile does not provide audited revenue-by-segment percentages. MOVA will not display estimated splits.</b></div>';
+
   try{
-    if(location.protocol==='file:')throw new Error('Live profile requires deployed MOVA');
-    const [fundResult,historyResult,marketResult]=await Promise.allSettled([
-      fetchJson('/api/fundamentals?symbol='+encodeURIComponent(k)),
-      fetchJson('/api/company-history?ticker='+encodeURIComponent(k)+'&name='+encodeURIComponent(a.n)),
-      fetchJson('/api/market?symbols='+encodeURIComponent(k))
-    ]);
-    const fundamentals=fundResult.status==='fulfilled'?fundResult.value:null;
-    const history=historyResult.status==='fulfilled'?historyResult.value:null;
-    const market=marketResult.status==='fulfilled'?marketResult.value:null;
-    if(!fundamentals&&!history&&!market)throw new Error('Company feeds unavailable');
-
-    const profile=fundamentals?.profile||{};
-    const liveMarket=Array.isArray(market?.assets)?market.assets.find(x=>x.ticker===k):null;
-    const cachedLive=(typeof liveQuotes!=='undefined'&&liveQuotes?.get)?liveQuotes.get(k):null;
-    const quote=liveMarket||cachedLive||null;
-    const companyName=profile.name||history?.name||a.n||k;
-    const industry=profile.industry||'Not available from Finnhub';
-    const exchange=profile.exchange||'Not available from Finnhub';
-    const country=profile.country||'Not available from Finnhub';
-    const ticker=profile.ticker||k;
-    const priceText=quote?.priceNative!=null?money(quote.priceNative):'Live quote unavailable';
-    const changePct=quote?.changePct;
-    const moveText=Number.isFinite(Number(changePct))?((Number(changePct)>=0?'+':'')+Number(changePct).toFixed(2)+'%'):'—';
-
-    if(quote?.priceNative!=null){
-      crPrice.textContent=priceText;
-      crMove.textContent=moveText;
-      crMove.className=Number(changePct)>=0?'up':'down';
-    }
-    crName.textContent=companyName;
-    crWhoTitle.textContent=companyName;
-    crEyebrow.textContent=(profile.industry||a.sector||'Company')+' · '+ticker;
-
+    const history=await fetchJson('/api/company-history?ticker='+encodeURIComponent(k)+'&name='+encodeURIComponent(a.n),6500);
     const summary=history?.summary||history?.overview||'';
     const business=history?.sections?.business||history?.business||history?.sections?.products||history?.products||'';
     const origins=history?.sections?.origins||history?.origins||summary;
-    const profileSummary=summary||(
-      companyName+' is a publicly traded company'+
-      (profile.industry?' in the '+profile.industry+' industry':'')+
-      (profile.exchange?' listed on '+profile.exchange:'')+
-      (profile.country?' and based in '+profile.country:'')+'.'
-    );
-    crIntro.textContent=profileSummary;
-    crWho.textContent=profileSummary;
-    crWhat.textContent=business||('Finnhub classifies '+companyName+' in the '+industry+' industry. A detailed business description is not available from the live company-profile feed.');
-    crHistorySummary.textContent=origins||'Detailed company history is temporarily unavailable.';
-
-    crFacts.innerHTML=[
-      ['Industry',industry],
-      ['Ticker',ticker],
-      ['Current price',priceText],
-      ['Exchange',exchange]
-    ].map(x=>'<div class="cr-fact"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('');
-
-    const founded=history?.foundedDisplay||history?.founded||'Not provided by Finnhub';
+    if(summary){crIntro.textContent=summary;crWho.textContent=summary}
+    if(business)crWhat.textContent=business;
+    if(origins)crHistorySummary.textContent=origins;
+    const founded=history?.foundedDisplay||history?.founded||'Not available';
     const historyFounders=Array.isArray(history?.founders)?history.founders.filter(Boolean).join(', '):(history?.founders||'');
-    const founders=historyFounders||'Not provided by Finnhub';
-    const headquarters=history?.headquarters||'Not provided by Finnhub';
-    const website=profile.website||profile.weburl||history?.website||'';
-    const sourceParts=[];
-    if(fundamentals)sourceParts.push('Finnhub live profile');
-    if(history)sourceParts.push('company-history enrichment');
-    if(quote?.provider)sourceParts.push(quote.provider+' quote');
-    const detailRows=[
-      ['Founded',founded],
-      ['Founder(s)',founders],
-      ['Headquarters',headquarters],
-      ['Country',country],
-      ['IPO',profile.ipo||'Not available from Finnhub'],
-      ['Website',website||'Not available'],
-      ['Research source',sourceParts.join(' + ')||'Live company feeds']
-    ];
-    root.innerHTML=detailRows.map(x=>'<div class="cr-fact"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('');
-
+    const headquarters=history?.headquarters||'Not available';
+    root.innerHTML=factRows([
+      ['Founded',founded],['Founder(s)',historyFounders||'Not identified'],['Headquarters',headquarters],
+      ['Country',country],['IPO',ipo],['Website',website||history?.website||'Not available'],
+      ['Research source','Finnhub live profile + company-history enrichment'+(quote?.provider?' + '+quote.provider+' quote':'')]
+    ]);
     const rev=history?.revenueContext||null;
     const revItems=Array.isArray(rev?.items)?rev.items.filter(x=>x?.description):[];
     if(revItems.length){
       crBusinessMix.innerHTML=(rev?.summary?'<div class="cr-fact"><span>BUSINESS MODEL</span><b>'+esc(rev.summary)+'</b></div>':'')+
-        revItems.slice(0,5).map(x=>'<div class="cr-fact"><span>'+esc(x.label||'Revenue / business area')+'</span><b>'+esc(x.description)+'</b></div>').join('')+
-        '<div class="cr-fact"><span>DATA NOTE</span><b>Qualitative source information only — MOVA does not invent segment percentages.</b></div>';
-    }else{
-      crBusinessMix.innerHTML='<div class="cr-fact"><span>SEGMENT DATA</span><b>Finnhub company profile does not provide revenue-by-segment percentages. MOVA will not display an estimated 70/30 split.</b></div>';
+        revItems.slice(0,5).map(x=>'<div class="cr-fact"><span>'+esc(x.label||'Business area')+'</span><b>'+esc(x.description)+'</b></div>').join('')+
+        '<div class="cr-fact"><span>DATA NOTE</span><b>Qualitative verified information only — no invented segment percentages.</b></div>';
     }
-
-    crHistoryStats.innerHTML=[
-      ['Current',priceText],
-      ['Latest move',moveText],
-      ['Industry',industry],
-      ['IPO',profile.ipo||'Not available']
-    ].map(x=>'<div class="cr-fact"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('');
-
     if(Array.isArray(history?.timeline)&&history.timeline.length){
       crMilestones.innerHTML=history.timeline.map(x=>'<div class="timeline-item"><time>'+esc(x.year||'')+'</time><i class="timeline-dot"></i><p><b>'+esc(x.title||'')+'</b>'+(x.text?' — '+esc(x.text):'')+'</p></div>').join('');
-    }else{
-      crMilestones.innerHTML='<div class="cr-fact"><span>HISTORY</span><b>Verified company milestones are temporarily unavailable.</b></div>';
     }
-  }catch(err){
-    root.innerHTML=[
-      ['Founded','Live data unavailable'],
-      ['Founder(s)','Live data unavailable'],
-      ['Headquarters','Live data unavailable'],
-      ['Research source','Company profile feeds temporarily unavailable']
-    ].map(x=>'<div class="cr-fact"><span>'+esc(x[0])+'</span><b>'+esc(x[1])+'</b></div>').join('');
-    crBusinessMix.innerHTML='<div class="cr-fact"><span>SEGMENT DATA</span><b>Live company data is temporarily unavailable. No fallback percentages are being shown.</b></div>';
+  }catch(_){
+    root.innerHTML=factRows([
+      ['Founded','History source temporarily unavailable'],['Founder(s)','History source temporarily unavailable'],['Headquarters','History source temporarily unavailable'],
+      ['Country',country],['IPO',ipo],['Website',website||'Not available'],
+      ['Research source',fundamentals?'Finnhub live profile'+(quote?.provider?' + '+quote.provider+' quote':''):'Company profile feeds temporarily unavailable']
+    ]);
   }
 }`;
 
 html=html.slice(0,startAt)+replacement+html.slice(endAt);
 fs.writeFileSync(file,html);
-console.log('Patched full company Overview with Finnhub-first live profile, synchronized quote, and non-invented business mix.');
+console.log('Patched company profile with immediate Finnhub render and non-blocking history enrichment.');
