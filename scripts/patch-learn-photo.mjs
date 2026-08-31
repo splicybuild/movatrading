@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+const file='dist/index.html';
+let html=fs.readFileSync(file,'utf8');
+const start=html.indexOf('<div class="learn-visual">');
+const end=start>=0?html.indexOf('</div>',start):-1;
+if(start<0||end<0)throw new Error('Learn visual not found');
+const photo='<div class="learn-visual"><img src="https://images.unsplash.com/photo-1768055104923-a6f76e7478c7?auto=format&fit=crop&w=1600&q=82" alt="Person studying financial market charts with calculator and notes" loading="lazy"></div>';
+html=html.slice(0,start)+photo+html.slice(end+6);
+html=html.replace('</head>','<style>.learn-visual{padding:0;position:relative}.learn-visual img{width:100%;height:100%;object-fit:cover;display:block}.learn-visual:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(4,16,24,.28))}</style></head>');
+fs.writeFileSync(file,html);
+console.log('Replaced Learn illustration with real trading-study photograph.');
