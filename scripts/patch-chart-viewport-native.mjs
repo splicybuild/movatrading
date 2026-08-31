@@ -3,28 +3,35 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
-const decl=/let\s+chartData\s*=\s*([^;]+);/;
-const m=html.match(decl);
-if(!m) throw new Error('Native chart viewport patch: chartData declaration not found');
+const drawMarker=/function\s+drawMarketChart\s*\(/;
+if(!drawMarker.test(html)) throw new Error('Native chart viewport patch: drawMarketChart function not found');
 
-const native=`let chartData=${m[1]};
-let chartFullData=Array.isArray(chartData)?chartData.slice():[];
+const native=`let chartFullData=[];
 let chartZoomFactor=1;
 let chartPanAnchor=1;
 let chartPanDrag=null;
 
+function syncChartFullData(){
+  if(!Array.isArray(chartData))return;
+  if(!chartFullData.length||chartZoomFactor<=1)chartFullData=chartData.slice();
+}
 function chartVisibleCount(){
   const n=chartFullData.length||chartData.length||0;
   return Math.max(12,Math.min(n,Math.round(n/chartZoomFactor)));
 }
 function applyChartViewport(){
-  if(!Array.isArray(chartFullData)||!chartFullData.length){chartFullData=Array.isArray(chartData)?chartData.slice():[]}
+  if(!chartFullData.length&&Array.isArray(chartData))chartFullData=chartData.slice();
   if(chartZoomFactor<=1||chartFullData.length<=12){chartData=chartFullData.slice();chartPanAnchor=1;return}
   const visible=chartVisibleCount(),maxStart=Math.max(0,chartFullData.length-visible);
   const start=Math.max(0,Math.min(maxStart,Math.round(maxStart*chartPanAnchor)));
   chartData=chartFullData.slice(start,start+visible);
 }
-function redrawChartViewport(){applyChartViewport();if(typeof requestChartDraw==='function')requestChartDraw();else if(typeof drawMarketChart==='function')drawMarketChart();updateNativeChartZoomUi()}
+function redrawChartViewport(){
+  applyChartViewport();
+  if(typeof requestChartDraw==='function')requestChartDraw();
+  else drawMarketChart();
+  updateNativeChartZoomUi();
+}
 function zoomChartNative(dir){
   if(!chartFullData.length&&Array.isArray(chartData))chartFullData=chartData.slice();
   if(dir>0)chartZoomFactor=Math.min(8,chartZoomFactor*1.5);
@@ -42,10 +49,12 @@ function updateNativeChartZoomUi(){
   if(out)out.disabled=chartZoomFactor<=1.001;
   if(reset)reset.disabled=chartZoomFactor<=1.001;
   if(hint)hint.textContent=chartZoomFactor>1?'Drag chart left/right to pan':'Zoom in to pan';
-  const c=document.getElementById('marketCanvas');if(c){c.style.cursor=chartZoomFactor>1&&!chartDrawingActive()?(chartPanDrag?'grabbing':'grab'):'';c.style.touchAction=chartZoomFactor>1?'none':''}
+  const c=document.getElementById('marketCanvas');
+  if(c){c.style.cursor=chartZoomFactor>1&&!chartDrawingActive()?(chartPanDrag?'grabbing':'grab'):'';c.style.touchAction=chartZoomFactor>1?'none':''}
 }
 function setupNativeChartViewport(){
   const canvas=document.getElementById('marketCanvas');if(!canvas)return;
+  syncChartFullData();
   if(!document.getElementById('movaNativeChartZoom')){
     const bar=document.createElement('div');bar.id='movaNativeChartZoom';bar.className='mova-native-chart-zoom';
     bar.innerHTML='<span class="mova-native-chart-zoom-label">ZOOM / PAN</span><button type="button" data-native-zoom-in>＋ Zoom in</button><button type="button" data-native-zoom-out>− Zoom out</button><span data-native-zoom-readout>100%</span><button type="button" data-native-zoom-reset>Reset</button><span data-native-pan-hint>Zoom in to pan</span>';
@@ -72,14 +81,21 @@ function setupNativeChartViewport(){
       redrawChartViewport();
     },{passive:false});
     const stop=e=>{if(!chartPanDrag)return;chartPanDrag=null;try{canvas.releasePointerCapture(e.pointerId)}catch(_){}updateNativeChartZoomUi()};
-    canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);canvas.addEventListener('lostpointercapture',()=>{chartPanDrag=null;updateNativeChartZoomUi()});
+    canvas.addEventListener('pointerup',stop);
+    canvas.addEventListener('pointercancel',stop);
+    canvas.addEventListener('lostpointercapture',()=>{chartPanDrag=null;updateNativeChartZoomUi()});
   }
   updateNativeChartZoomUi();
 }
-setTimeout(setupNativeChartViewport,250);setTimeout(setupNativeChartViewport,900);`;
+setTimeout(setupNativeChartViewport,250);
+setTimeout(setupNativeChartViewport,900);
 
-html=html.replace(decl,native);
-html=html.replace(/chartData\s*=\s*clean;/g,'chartFullData=clean.slice();chartPanAnchor=1;applyChartViewport();');
+`;
+
+html=html.replace(drawMarker,match=>native+match);
+
+// Whenever fresh OHLC is loaded, refresh the master dataset and then apply the current viewport.
+html=html.replace(/chartData\s*=\s*clean;/g,'chartFullData=clean.slice();chartData=clean.slice();chartPanAnchor=1;applyChartViewport();');
 
 const css=`
 /* Native MOVA chart zoom and pan */
