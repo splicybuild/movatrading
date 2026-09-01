@@ -1,4 +1,4 @@
-name: Apply MOVA favicon v178
+name: Apply MOVA premium M favicon
 
 on:
   push:
@@ -15,30 +15,126 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Point MOVA to the new favicon
+
+      - name: Build browser and app icons from premium M
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageOps
+
+          src = Path('assets/MOVA-M-prem-icon.png')
+          if not src.exists():
+              raise SystemExit(f'Missing source icon: {src}')
+
+          image = Image.open(src).convert('RGBA')
+
+          # Trim transparent padding if present, then place the M on a pure black square.
+          alpha = image.getchannel('A')
+          bbox = alpha.getbbox()
+          if bbox:
+              image = image.crop(bbox)
+
+          def render(size: int) -> Image.Image:
+              canvas = Image.new('RGBA', (size, size), (0, 0, 0, 255))
+              max_side = max(1, int(size * 0.90))
+              mark = ImageOps.contain(image, (max_side, max_side), Image.Resampling.LANCZOS)
+              x = (size - mark.width) // 2
+              y = (size - mark.height) // 2
+              canvas.alpha_composite(mark, (x, y))
+              return canvas.convert('RGB')
+
+          outputs = {
+              Path('assets/favicon-16x16.png'): 16,
+              Path('assets/favicon-32x32.png'): 32,
+              Path('assets/favicon-64x64.png'): 64,
+              Path('assets/apple-touch-icon.png'): 180,
+              Path('assets/mova-app-icon-192.png'): 192,
+              Path('assets/mova-app-icon-512.png'): 512,
+          }
+
+          for path, size in outputs.items():
+              path.parent.mkdir(parents=True, exist_ok=True)
+              render(size).save(path, 'PNG', optimize=True)
+
+          ico = render(256)
+          ico.save('favicon.ico', format='ICO', sizes=[
+              (16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)
+          ])
+          PY
+
+      - name: Wire browser favicon and PWA app icons
         run: |
           python - <<'PY'
           from pathlib import Path
+          import json
           import re
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          s=re.sub(r'<link rel="icon" href="/assets/icons/favicon\.ico\?v=\d+" sizes="any">','<link rel="icon" type="image/svg+xml" href="/assets/icons/mova-favicon-v178.svg?v=178">',s,count=1)
-          s=re.sub(r'<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/[^"]+">','',s,count=1)
-          s=re.sub(r'<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/[^"]+">','',s,count=1)
-          s=re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->','<!-- MOVA BUILD v178 REDESIGNED FAVICON -->',s,count=1)
-          s=re.sub(r'data-mova-build="[^"]+"','data-mova-build="v178-redesigned-favicon"',s,count=1)
-          if '/assets/icons/mova-favicon-v178.svg?v=178' not in s:
-              raise SystemExit('new favicon reference missing')
-          p.write_text(s,encoding='utf-8')
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Remove existing favicon / Apple icon declarations so browsers do not keep
+          # selecting an older MOVA icon from another declaration.
+          s = re.sub(
+              r'\s*<link\b[^>]*\brel=["\'](?:shortcut\s+icon|icon|apple-touch-icon)["\'][^>]*>',
+              '',
+              s,
+              flags=re.I,
+          )
+
+          favicon_links = '''
+  <link rel="icon" href="/favicon.ico?v=179" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=179">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png?v=179">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=179">
+'''
+
+          if '</head>' not in s:
+              raise SystemExit('index.html has no </head> tag')
+          s = s.replace('</head>', favicon_links + '</head>', 1)
+
+          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v179 PREMIUM M FAVICON -->', s, count=1)
+          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v179-premium-m-favicon"', s, count=1)
+          p.write_text(s, encoding='utf-8')
+
+          manifest_path = Path('manifest.webmanifest')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          manifest['background_color'] = '#000000'
+          manifest['theme_color'] = '#000000'
+          manifest['icons'] = [
+              {
+                  'src': 'assets/mova-app-icon-192.png?v=179',
+                  'sizes': '192x192',
+                  'type': 'image/png',
+                  'purpose': 'any maskable'
+              },
+              {
+                  'src': 'assets/mova-app-icon-512.png?v=179',
+                  'sizes': '512x512',
+                  'type': 'image/png',
+                  'purpose': 'any maskable'
+              }
+          ]
+          manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
           PY
-      - name: Commit favicon wiring
+
+      - name: Commit premium favicon assets and wiring
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add index.html
+          git add \
+            index.html \
+            manifest.webmanifest \
+            favicon.ico \
+            assets/favicon-16x16.png \
+            assets/favicon-32x32.png \
+            assets/favicon-64x64.png \
+            assets/apple-touch-icon.png \
+            assets/mova-app-icon-192.png \
+            assets/mova-app-icon-512.png
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Wire redesigned MOVA favicon"
+            git commit -m "Apply premium MOVA M favicon and app icon"
             git push origin main
           fi
