@@ -19,6 +19,7 @@ html=html.replace(marker,`${marker}
     brandHero.style.removeProperty('--cr-brand-image');
 
     const symbol=ticker||k;
+    brandHero.dataset.brand=symbol;
     const officialFiles={
       AAPL:'Apple logo black.svg',
       TSLA:'Tesla Motors.svg',
@@ -32,7 +33,8 @@ html=html.replace(marker,`${marker}
       AVGO:'Broadcom logo (2016-present).svg',
       XOM:'Exxon Mobil Logo.svg',
       GOOGL:'Alphabet Inc Logo 2015.svg',
-      GOOG:'Alphabet Inc Logo 2015.svg'
+      GOOG:'Alphabet Inc Logo 2015.svg',
+      GS:'Goldman Sachs logo.svg'
     };
     const titleMap={AAPL:'Apple Inc.',TSLA:'Tesla, Inc.',NVDA:'Nvidia',AMZN:'Amazon (company)',AVGO:'Broadcom Inc.',AMD:'Advanced Micro Devices',MU:'Micron Technology',MSFT:'Microsoft',META:'Meta Platforms',GOOGL:'Alphabet Inc.',GOOG:'Alphabet Inc.',NFLX:'Netflix, Inc.',INTC:'Intel',WMT:'Walmart',LLY:'Eli Lilly and Company',XOM:'ExxonMobil',JPM:'JPMorgan Chase',GS:'Goldman Sachs'};
 
@@ -91,21 +93,39 @@ html=html.replace(marker,`${marker}
   }`);
 
 html=html.replace('</head>',`<style>
-.company-research-hero.cr-brand-hero{position:relative!important;isolation:isolate!important;overflow:hidden!important;min-height:310px!important;padding:38px 42px!important;border-radius:26px!important;background:#050d14!important}
-.company-research-hero.cr-brand-hero>.cr-brand-logo-stage{position:absolute!important;z-index:0!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0 18% 0 31%!important;overflow:hidden!important;pointer-events:none!important}
-.company-research-hero.cr-brand-hero>.cr-brand-logo-stage:before{content:"";position:absolute!important;z-index:0!important;left:34%!important;right:14%!important;top:8%!important;bottom:8%!important;border-radius:42px!important;background:radial-gradient(ellipse at center,rgba(255,255,255,.99) 0%,rgba(249,251,253,.97) 58%,rgba(240,245,249,.82) 73%,rgba(240,245,249,.28) 88%,transparent 100%)!important;filter:drop-shadow(0 12px 42px rgba(0,0,0,.20))!important}
-.company-research-hero.cr-brand-hero>.cr-brand-logo-stage img{position:relative!important;z-index:1!important;display:block!important;width:auto!important;height:auto!important;max-width:100%!important;max-height:72%!important;object-fit:contain!important;object-position:center!important;opacity:0!important;filter:drop-shadow(0 8px 24px rgba(0,0,0,.18))!important;transition:opacity .22s ease!important}
-.company-research-hero.cr-brand-hero>.cr-brand-logo-stage.loaded img{opacity:.98!important}
-.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="wide"] img{max-width:100%!important;max-height:58%!important}
-.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="tall"] img{max-width:46%!important;max-height:82%!important}
-.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="balanced"] img{max-width:76%!important;max-height:76%!important}
-.company-research-hero.cr-brand-hero>.cr-brand-copy{position:relative!important;z-index:3!important;width:min(72%,1320px)!important;margin-left:-8px!important;padding:14px 19% 14px 8px!important;border-radius:22px!important;background:linear-gradient(90deg,rgba(3,11,18,.97) 0%,rgba(3,11,18,.91) 48%,rgba(3,11,18,.68) 72%,rgba(3,11,18,0) 100%)!important;text-shadow:0 2px 12px rgba(0,0,0,.75)!important}
-.company-research-hero.cr-brand-hero:after{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,11,18,.22) 0%,rgba(3,11,18,.06) 42%,rgba(3,11,18,.02) 70%,rgba(3,11,18,.34) 100%)}
+.company-research-hero.cr-brand-hero{--brand-a:#07131d;--brand-b:#0b2434;--brand-glow:rgba(66,187,255,.18);--logo-core:rgba(235,246,255,.90);position:relative!important;isolation:isolate!important;overflow:hidden!important;grid-template-columns:minmax(0,1fr) minmax(230px,285px)!important;gap:28px!important;align-items:stretch!important;min-height:315px!important;padding:34px 36px!important;border:1px solid rgba(118,168,199,.13)!important;border-radius:28px!important;background:radial-gradient(circle at 68% 35%,var(--brand-glow),transparent 34%),linear-gradient(135deg,var(--brand-a),var(--brand-b))!important;box-shadow:0 20px 60px rgba(0,0,0,.16)!important}
+.company-research-hero.cr-brand-hero[data-brand="MSFT"]{--brand-a:#071623;--brand-b:#12364a;--brand-glow:rgba(0,164,239,.24);--logo-core:rgba(242,247,250,.92)}
+.company-research-hero.cr-brand-hero[data-brand="NVDA"]{--brand-a:#061208;--brand-b:#173519;--brand-glow:rgba(118,185,0,.27);--logo-core:rgba(224,244,216,.91)}
+.company-research-hero.cr-brand-hero[data-brand="AMZN"]{--brand-a:#11151a;--brand-b:#2b2115;--brand-glow:rgba(255,153,0,.28);--logo-core:rgba(255,244,225,.94)}
+.company-research-hero.cr-brand-hero[data-brand="TSLA"]{--brand-a:#150609;--brand-b:#3b0c14;--brand-glow:rgba(232,33,39,.30);--logo-core:rgba(255,229,231,.91)}
+.company-research-hero.cr-brand-hero[data-brand="AAPL"]{--brand-a:#0d1116;--brand-b:#333941;--brand-glow:rgba(207,213,220,.25);--logo-core:rgba(245,247,250,.93)}
+.company-research-hero.cr-brand-hero[data-brand="MU"]{--brand-a:#061521;--brand-b:#123b58;--brand-glow:rgba(0,149,218,.28);--logo-core:rgba(224,245,255,.94)}
+.company-research-hero.cr-brand-hero[data-brand="LLY"]{--brand-a:#16070b;--brand-b:#48121e;--brand-glow:rgba(206,24,54,.25);--logo-core:rgba(255,232,237,.92)}
+.company-research-hero.cr-brand-hero[data-brand="WMT"]{--brand-a:#041a31;--brand-b:#07569a;--brand-glow:rgba(255,194,32,.22);--logo-core:rgba(231,244,255,.94)}
+.company-research-hero.cr-brand-hero[data-brand="AMD"]{--brand-a:#120909;--brand-b:#3a1616;--brand-glow:rgba(237,28,36,.25);--logo-core:rgba(255,235,235,.92)}
+.company-research-hero.cr-brand-hero[data-brand="AVGO"]{--brand-a:#18090c;--brand-b:#40151b;--brand-glow:rgba(204,9,47,.24);--logo-core:rgba(255,232,236,.92)}
+.company-research-hero.cr-brand-hero[data-brand="XOM"]{--brand-a:#140606;--brand-b:#391010;--brand-glow:rgba(237,28,36,.24);--logo-core:rgba(255,232,232,.92)}
+.company-research-hero.cr-brand-hero[data-brand="GOOGL"],.company-research-hero.cr-brand-hero[data-brand="GOOG"]{--brand-a:#0c1320;--brand-b:#172846;--brand-glow:rgba(66,133,244,.24);--logo-core:rgba(244,248,255,.94)}
+.company-research-hero.cr-brand-hero[data-brand="GS"]{--brand-a:#061723;--brand-b:#123d58;--brand-glow:rgba(64,153,204,.26);--logo-core:rgba(230,246,255,.94)}
+.company-research-hero.cr-brand-hero>.cr-brand-logo-stage{position:absolute!important;z-index:0!important;left:31%!important;right:300px!important;top:18px!important;bottom:18px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;pointer-events:none!important}
+.company-research-hero.cr-brand-hero>.cr-brand-logo-stage:before{content:"";position:absolute!important;inset:-4%!important;background:radial-gradient(ellipse at center,var(--logo-core) 0%,color-mix(in srgb,var(--logo-core) 64%,transparent) 32%,color-mix(in srgb,var(--brand-glow) 74%,transparent) 58%,transparent 78%)!important;filter:blur(13px)!important;opacity:.86!important}
+.company-research-hero.cr-brand-hero>.cr-brand-logo-stage img{position:relative!important;z-index:1!important;display:block!important;width:auto!important;height:auto!important;max-width:88%!important;max-height:70%!important;object-fit:contain!important;object-position:center!important;opacity:0!important;filter:drop-shadow(0 9px 28px rgba(0,0,0,.20))!important;transition:opacity .22s ease!important}
+.company-research-hero.cr-brand-hero>.cr-brand-logo-stage.loaded img{opacity:.96!important}
+.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="wide"] img{max-width:94%!important;max-height:58%!important}
+.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="tall"] img{max-width:45%!important;max-height:82%!important}
+.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="balanced"] img{max-width:72%!important;max-height:76%!important}
+.company-research-hero.cr-brand-hero>.cr-brand-copy{position:relative!important;z-index:3!important;align-self:center!important;width:100%!important;max-width:1120px!important;margin:0!important;padding:14px 30% 14px 4px!important;background:linear-gradient(90deg,rgba(3,11,18,.97) 0%,rgba(3,11,18,.90) 48%,rgba(3,11,18,.57) 72%,rgba(3,11,18,0) 100%)!important;text-shadow:0 2px 12px rgba(0,0,0,.72)!important}
+.company-research-hero.cr-brand-hero>.cr-price-side{position:relative!important;z-index:4!important;align-self:stretch!important;display:flex!important;flex-direction:column!important;justify-content:center!important;gap:11px!important;min-width:0!important;padding:16px!important;margin:0!important;border:1px solid rgba(157,202,228,.18)!important;border-radius:22px!important;background:linear-gradient(180deg,rgba(5,18,29,.82),rgba(5,15,24,.72))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 12px 34px rgba(0,0,0,.20)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+.company-research-hero.cr-brand-hero>.cr-price-side .cr-price-card{min-width:0!important;padding:8px 6px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;text-align:right!important;box-shadow:none!important}
+.company-research-hero.cr-brand-hero>.cr-price-side .cr-price-card span{font-size:9px!important;letter-spacing:.08em!important}
+.company-research-hero.cr-brand-hero>.cr-price-side .cr-price-card b{font-size:clamp(31px,3vw,44px)!important;margin:7px 0 10px!important}
+.company-research-hero.cr-brand-hero>.cr-price-side .cr-watch-btn{width:100%!important;margin:0!important;border-radius:12px!important;background:rgba(5,20,31,.70)!important;border:1px solid rgba(66,187,255,.34)!important;box-shadow:none!important}
+.company-research-hero.cr-brand-hero:after{content:"";position:absolute;z-index:1;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(3,11,18,.18) 0%,rgba(3,11,18,.03) 55%,rgba(3,11,18,.18) 78%,rgba(3,11,18,.36) 100%)}
 .company-research-hero.cr-brand-hero>*:not(.cr-brand-logo-stage){position:relative;z-index:2}
-.company-research-hero.cr-brand-hero>.cr-price-side{z-index:4!important;background:transparent!important}
 .ticker .tick,.ticker-track .tick,.tick[role="button"]{cursor:pointer!important}
-@media(max-width:760px){.company-research-hero.cr-brand-hero{min-height:410px!important;padding:26px 20px!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage{align-items:flex-start!important;padding:28px 5% 0!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage:before{left:5%!important;right:5%!important;top:4%!important;bottom:35%!important;border-radius:28px!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="wide"] img{max-width:86%!important;max-height:40%!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="tall"] img{max-width:40%!important;max-height:48%!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="balanced"] img{max-width:68%!important;max-height:44%!important}.company-research-hero.cr-brand-hero>.cr-brand-copy{width:100%!important;margin:0!important;padding:150px 0 12px!important;background:linear-gradient(180deg,rgba(3,11,18,0) 0%,rgba(3,11,18,.72) 42%,rgba(3,11,18,.97) 72%,rgba(3,11,18,.99) 100%)!important}.company-research-hero.cr-brand-hero:after{background:linear-gradient(180deg,rgba(3,11,18,.03) 0%,rgba(3,11,18,.16) 45%,rgba(3,11,18,.82) 100%)}}
+@media(max-width:900px){.company-research-hero.cr-brand-hero{grid-template-columns:minmax(0,1fr) 230px!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage{left:34%!important;right:242px!important}.company-research-hero.cr-brand-hero>.cr-brand-copy{padding-right:23%!important}}
+@media(max-width:760px){.company-research-hero.cr-brand-hero{grid-template-columns:1fr!important;min-height:460px!important;padding:24px 18px!important;gap:14px!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage{left:4%!important;right:4%!important;top:18px!important;bottom:auto!important;height:185px!important;align-items:center!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage img{max-width:82%!important;max-height:72%!important}.company-research-hero.cr-brand-hero>.cr-brand-logo-stage[data-shape="tall"] img{max-width:36%!important;max-height:80%!important}.company-research-hero.cr-brand-hero>.cr-brand-copy{padding:158px 0 10px!important;background:linear-gradient(180deg,rgba(3,11,18,0) 0%,rgba(3,11,18,.48) 36%,rgba(3,11,18,.94) 72%,rgba(3,11,18,.98) 100%)!important}.company-research-hero.cr-brand-hero>.cr-price-side{align-self:auto!important;padding:12px 14px!important;border-radius:17px!important;background:rgba(5,17,27,.80)!important}.company-research-hero.cr-brand-hero>.cr-price-side .cr-price-card{text-align:left!important;display:grid!important;grid-template-columns:1fr auto!important;align-items:end!important;column-gap:12px!important}.company-research-hero.cr-brand-hero>.cr-price-side .cr-price-card b{font-size:30px!important;margin:4px 0!important}.company-research-hero.cr-brand-hero>.cr-price-side .cr-price-card small{grid-column:2;grid-row:1 / span 2;align-self:center!important}}
 </style></head>`);
 
 fs.writeFileSync(file,html);
-console.log('Added bright neutral brand canvas with preserved official colours and dark readable copy zone.');
+console.log('Added brand-specific Research heroes and an integrated glass price/watchlist panel.');
