@@ -12,6 +12,13 @@ const oldOpenAsset=`function openAsset(k){
 const newOpenAsset=`function openAsset(k){
   const a=assets.find(x=>x.k===k);if(!a)return;
   closeModal();
+  const nonEquity=['Commodity','Index','Macro','Volatility'];
+  if(nonEquity.includes(a.sector)){
+    go('pulse');
+    pulseInput.value=a.k;
+    searchPulse();
+    return;
+  }
   openCompanyResearch(k);
 }`;
 if(!html.includes(oldOpenAsset))throw new Error('openAsset block not found');
@@ -21,6 +28,7 @@ const openMarker="function openCompanyResearch(k){\n  recordMarketView(k);";
 if(!html.includes(openMarker))throw new Error('openCompanyResearch marker not found');
 html=html.replace(openMarker,`function openCompanyResearch(k,restoreTab='overview'){
   recordMarketView(k);`);
+html=html.replace("  const a=assets.find(x=>x.k===k),p=getProfile(k);if(!a||!p)return;","  const a=assets.find(x=>x.k===k),p=getProfile(k);if(!a||!p)return;\n  if(['Commodity','Index','Macro','Volatility'].includes(a.sector)){go('pulse');pulseInput.value=a.k;searchPulse();return;}");
 html=html.replace("  initResearchChart(k);hydrateCompanyHistoryLive(k,a);hydrateCompanyFinancialsLive(k);switchCRTab('overview');window.scrollTo({top:0,behavior:'auto'});updateTopButton();","  initResearchChart(k);hydrateCompanyHistoryLive(k,a);hydrateCompanyFinancialsLive(k);switchCRTab(restoreTab||'overview');history.replaceState(null,'',`#company=${encodeURIComponent(k)}&tab=${encodeURIComponent(restoreTab||'overview')}`);window.scrollTo({top:0,behavior:'auto'});updateTopButton();");
 
 html=html.replace("function closeCompanyResearch(){\n  companyResearchView.classList.remove('open');","function closeCompanyResearch(){\n  history.replaceState(null,'','#pulse');\n  companyResearchView.classList.remove('open');");
@@ -50,4 +58,4 @@ html=html.replace(loadMarker,`window.addEventListener('load',()=>{
 });`);
 
 fs.writeFileSync(file,html);
-console.log('Patched direct company Research routing and refresh state restoration.');
+console.log('Patched direct equity Research routing, non-equity guard and refresh state restoration.');
