@@ -49,8 +49,8 @@ const style = `
     z-index:3!important;
   }
   header .brand.mova-brand-v186 img{
-    height:68px!important;
-    max-width:340px!important;
+    height:72px!important;
+    max-width:344px!important;
   }
   header nav{
     position:absolute!important;
@@ -85,10 +85,10 @@ const style = `
     top:28px!important;
     left:auto!important;
     bottom:auto!important;
-    width:42px!important;
-    height:42px!important;
-    min-width:42px!important;
-    min-height:42px!important;
+    width:48px!important;
+    height:48px!important;
+    min-width:48px!important;
+    min-height:48px!important;
     margin:0!important;
     z-index:5!important;
   }
