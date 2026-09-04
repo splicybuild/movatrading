@@ -59,20 +59,20 @@ const style = `
   header .brand.mova-brand-v187 img{
     display:block!important;
     width:auto!important;
-    height:72px!important;
-    max-width:348px!important;
+    height:88px!important;
+    max-width:356px!important;
     margin:0!important;
   }
   header nav{
     position:absolute!important;
-    left:48%!important;
+    left:28%!important;
     top:158px!important;
     bottom:auto!important;
     transform:none!important;
     margin:0!important;
     display:flex!important;
-    align-items:left!important;
-    justify-content:left!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
     gap:34px!important;
     width:max-content!important;
     max-width:760px!important;
