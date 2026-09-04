@@ -59,7 +59,7 @@ async function fetchImage(url){
     const type=(r.headers.get("content-type")||"").toLowerCase();
     if(!type.startsWith("image/"))return null;
     const body=await r.arrayBuffer();
-    if(body.byteLength<300)return null;
+    if(body.byteLength<250)return null;
     return {body,type};
   }catch(e){return null;}
 }
@@ -72,33 +72,59 @@ async function finnhubProfile(symbol,key){
     const d=await r.json();return d&&Object.keys(d).length?d:null;
   }catch(e){return null;}
 }
-function fallbackSvg(symbol){
-  const safe=String(symbol||"?").replace(/[^A-Z0-9.-]/gi,"").slice(0,5)||"?";
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="42" fill="#f5f7f8"/><text x="128" y="142" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="64" font-weight="800" fill="#10202c">${safe}</text></svg>`;
-}
+
+// Curated vector/official logo sources for the most visible MOVA companies.
+// These are deliberately tried before website favicons and other low-resolution fallbacks.
+const CURATED={
+  AMD:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/amd.svg',
+  AAPL:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/apple.svg',
+  TSLA:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/tesla.svg',
+  NFLX:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/netflix.svg',
+  MU:'https://upload.wikimedia.org/wikipedia/commons/1/16/Micron_Technology_logo_2024.svg',
+  CRM:'https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg',
+  WMT:'https://upload.wikimedia.org/wikipedia/commons/5/5b/Walmart_logo_%282025%29.svg',
+  MSFT:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/microsoft.svg',
+  AMZN:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/amazon.svg',
+  META:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/meta.svg',
+  NVDA:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/nvidia.svg',
+  INTC:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/intel.svg',
+  ORCL:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/oracle.svg',
+  ADBE:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/adobe.svg',
+  GOOGL:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/google.svg',
+  GOOG:'https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/google.svg'
+};
+
 export default{async fetch(request){
   const u=new URL(request.url);
   const symbol=String(u.searchParams.get("symbol")||"").trim().toUpperCase();
   let site=String(u.searchParams.get("url")||"").trim();
   const key=process.env.FINNHUB_API_KEY||"";
+
+  // Return a curated vector immediately when one is available.
+  if(CURATED[symbol]){
+    const curated=await fetchImage(CURATED[symbol]);
+    if(curated)return new Response(curated.body,{status:200,headers:{"Content-Type":curated.type,"Cache-Control":"public, s-maxage=604800, stale-while-revalidate=2592000","X-MOVA-Logo-Source":"curated"}});
+  }
+
   const profile=await finnhubProfile(symbol,key);
   if(profile?.weburl)site=profile.weburl;
-
   const candidates=[];
-  if(profile?.logo)candidates.push({url:profile.logo,score:240});
 
   if(site){
     if(!/^https?:\/\//i.test(site))site=`https://${site}`;
     try{
       const r=await fetch(site,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0 (compatible; MOVAResearch/1.0)","Accept":"text/html,application/xhtml+xml"}});
-      if(r.ok){
-        const html=await r.text();
-        candidates.push(...websiteCandidates(html,r.url||site));
-      }
+      if(r.ok)candidates.push(...websiteCandidates(await r.text(),r.url||site));
     }catch(e){}
+  }
+
+  // Finnhub comes after website vector/wordmark candidates because its stored logo can be a small raster.
+  if(profile?.logo)candidates.push({url:profile.logo,score:180});
+
+  if(site){
     try{
       const domain=new URL(site).hostname.replace(/^www\./,"");
-      candidates.push({url:`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=512`,score:10});
+      candidates.push({url:`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=512`,score:5});
     }catch(e){}
   }
 
@@ -106,8 +132,9 @@ export default{async fetch(request){
   for(const candidate of ordered){
     const img=await fetchImage(candidate.url);
     if(!img)continue;
-    return new Response(img.body,{status:200,headers:{"Content-Type":img.type,"Cache-Control":"public, s-maxage=21600, stale-while-revalidate=604800","X-MOVA-Logo-Source":candidate.url}});
+    return new Response(img.body,{status:200,headers:{"Content-Type":img.type,"Cache-Control":"public, s-maxage=86400, stale-while-revalidate=604800","X-MOVA-Logo-Source":candidate.url}});
   }
 
-  return new Response(fallbackSvg(symbol),{status:200,headers:{"Content-Type":"image/svg+xml; charset=utf-8","Cache-Control":"public, max-age=900"}});
+  // Never invent a ticker-letter tile. A missing logo should be visibly absent rather than incorrect.
+  return new Response('',{status:404,headers:{"Cache-Control":"public, max-age=900"}});
 }};
