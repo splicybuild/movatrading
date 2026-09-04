@@ -65,10 +65,10 @@ const style = `
   }
   header nav{
     position:absolute!important;
-    left:44px!important;
+    left:50px!important;
     top:158px!important;
     bottom:auto!important;
-    transform:none!important;
+    transform:translateX(-50%)!important;
     margin:0!important;
     display:flex!important;
     align-items:center!important;
