@@ -65,7 +65,7 @@ const style = `
   }
   header nav{
     position:absolute!important;
-    left:50px!important;
+    left:48%!important;
     top:158px!important;
     bottom:auto!important;
     transform:translateX(-50%)!important;
