@@ -72,7 +72,7 @@ const style = `
     margin:0!important;
     display:flex!important;
     align-items:left!important;
-    justify-content:center!important;
+    justify-content:left!important;
     gap:34px!important;
     width:max-content!important;
     max-width:760px!important;
