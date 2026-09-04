@@ -43,18 +43,15 @@ if(!html.includes(heroOld)) throw new Error('Company entry patch: company resear
 html=html.replace(heroOld,heroNew);
 
 const visualFn=`
-function companyLogoFallbackData(k){
-  const safe=String(k||'?').replace(/[^A-Z0-9.-]/gi,'').slice(0,5)||'?';
-  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="42" fill="#f5f7f8"/><text x="128" y="143" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="62" font-weight="800" fill="#10202c">'+safe+'</text></svg>';
-  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-}
 async function hydrateCompanyVisual(k){
   const logo=document.getElementById('crCompanyLogo');
   const bg=document.getElementById('crCompanyBackground');
   if(logo){
-    logo.style.display='block';
-    logo.onerror=()=>{logo.onerror=null;logo.src=companyLogoFallbackData(k);logo.style.display='block'};
-    logo.src='/api/company-logo?symbol='+encodeURIComponent(k)+'&v=190';
+    logo.removeAttribute('src');
+    logo.style.display='none';
+    logo.onload=()=>{logo.style.display='block'};
+    logo.onerror=()=>{logo.removeAttribute('src');logo.style.display='none'};
+    logo.src='/api/company-logo?symbol='+encodeURIComponent(k)+'&v=191';
   }
   if(bg){
     bg.removeAttribute('src');
@@ -70,7 +67,11 @@ async function hydrateCompanyVisual(k){
     const vr=await fetch('/api/company-visual?url='+encodeURIComponent(site),{cache:'no-store'});
     if(!vr.ok)return;
     const v=await vr.json();
-    if(v?.background && bg){bg.src=v.background;bg.style.display='block'}
+    if(v?.background && bg){
+      bg.onload=()=>{bg.style.display='block'};
+      bg.onerror=()=>{bg.removeAttribute('src');bg.style.display='none'};
+      bg.src=v.background;
+    }
   }catch(_){}
 }
 `;
@@ -84,18 +85,18 @@ if(!html.includes(hydrateCall)) throw new Error('Company entry patch: company re
 html=html.replace(hydrateCall,`  hydrateCompanyVisual(k);initResearchChart(k);hydrateCompanyHistoryLive(k,a);hydrateCompanyFinancialsLive(k);switchCRTab('overview');window.scrollTo({top:0,behavior:'auto'});updateTopButton();`);
 
 const css=`
-<style id="mova-company-visuals-v190">
+<style id="mova-company-visuals-v191">
 .cr-visual-hero{position:relative!important;overflow:hidden!important;isolation:isolate!important;min-height:230px!important}
 .cr-company-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:-3;opacity:.32;filter:saturate(.8) contrast(1.05)}
 .cr-company-overlay{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(4,12,19,.98) 0%,rgba(4,12,19,.88) 46%,rgba(4,12,19,.58) 100%)}
 .cr-company-copy{position:relative;z-index:1;min-width:0}
 .cr-company-heading-row{display:flex;align-items:center;gap:16px;min-width:0}
-.cr-company-logo{width:76px;height:76px;object-fit:contain;image-rendering:auto;border-radius:16px;padding:8px;background:rgba(255,255,255,.98);border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 28px rgba(0,0,0,.28);flex:0 0 auto}
-@media(max-width:740px){.cr-visual-hero{min-height:210px!important}.cr-company-heading-row{align-items:flex-start;gap:12px}.cr-company-logo{width:58px;height:58px;border-radius:13px;padding:6px}.cr-company-overlay{background:linear-gradient(180deg,rgba(4,12,19,.72),rgba(4,12,19,.97) 72%)}}
+.cr-company-logo{display:none;width:82px;height:82px;object-fit:contain;image-rendering:auto;border-radius:16px;padding:10px;background:#fff;border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 28px rgba(0,0,0,.28);flex:0 0 auto}
+@media(max-width:740px){.cr-visual-hero{min-height:210px!important}.cr-company-heading-row{align-items:flex-start;gap:12px}.cr-company-logo{width:62px;height:62px;border-radius:13px;padding:7px}.cr-company-overlay{background:linear-gradient(180deg,rgba(4,12,19,.72),rgba(4,12,19,.97) 72%)}}
 </style>
 `;
 
 if(!html.includes('</head>')) throw new Error('Company entry patch: </head> missing');
 html=html.replace('</head>',css+'</head>');
 writeFileSync(file,html);
-console.log('MOVA direct ticker-to-company and reliable company visuals v190 patch complete.');
+console.log('MOVA direct ticker-to-company and curated company visuals v191 patch complete.');
