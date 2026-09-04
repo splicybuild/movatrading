@@ -1,0 +1,46 @@
+name: Inspect MOVA branding markup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-mova-branding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build and inspect visible branding
+        run: |
+          npm run build
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('dist/index.html').read_text(encoding='utf-8')
+          print('=== MOVA IMG TAGS ===')
+          for m in re.finditer(r'<img\b[^>]*>', s, re.I):
+              tag=m.group(0)
+              if 'mova' in tag.lower() or 'logo' in tag.lower():
+                  print(tag[:1000])
+          print('=== HEADER BLOCK ===')
+          m=re.search(r'<header\b.*?</header>',s,re.I|re.S)
+          print((m.group(0) if m else 'NO HEADER')[:8000])
+          print('=== MOBILE NAV/BOTTOM NAV CANDIDATES ===')
+          for pat in [r'<nav\b[^>]*class="[^"]*(?:mobile|bottom|nav)[^"]*"[^>]*>.*?</nav>', r'<div\b[^>]*class="[^"]*(?:mobile|bottom)[^"]*"[^>]*>.*?</div>']:
+              for mm in re.finditer(pat,s,re.I|re.S):
+                  block=mm.group(0)
+                  if 'data-mob' in block or 'MOVA' in block or 'home' in block.lower():
+                      print(block[:8000])
+          print('=== BRAND/LOGO CLASS CONTEXT ===')
+          for mm in re.finditer(r'.{0,600}(?:brand|logo|MOVA icon).{0,1200}',s,re.I|re.S):
+              txt=mm.group(0)
+              if '<' in txt:
+                  print('---',txt[:1800])
+          PY
