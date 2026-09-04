@@ -1,4 +1,4 @@
-name: Apply MOVA premium M favicon
+name: Apply MOVA v180 branding
 
 on:
   push:
@@ -11,25 +11,26 @@ permissions:
   contents: write
 
 jobs:
-  apply-favicon:
+  apply-branding:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build browser and app icons from premium M
+      - name: Build browser and installed-app icons from new MOVA mark
         run: |
-          python -m pip install --quiet pillow
+          python -m pip install --quiet pillow cairosvg
           python - <<'PY'
           from pathlib import Path
           from PIL import Image, ImageOps
+          import cairosvg
 
-          src = Path('assets/MOVA-M-prem-icon.png')
+          src = Path('assets/MOVA-QIcon-logo.svg')
           if not src.exists():
               raise SystemExit(f'Missing source icon: {src}')
 
-          image = Image.open(src).convert('RGBA')
-
-          # Trim transparent padding if present, then place the M on a pure black square.
+          tmp = Path('/tmp/mova-qicon.png')
+          cairosvg.svg2png(url=str(src), write_to=str(tmp), output_width=1024, output_height=1024)
+          image = Image.open(tmp).convert('RGBA')
           alpha = image.getchannel('A')
           bbox = alpha.getbbox()
           if bbox:
@@ -37,7 +38,7 @@ jobs:
 
           def render(size: int) -> Image.Image:
               canvas = Image.new('RGBA', (size, size), (0, 0, 0, 255))
-              max_side = max(1, int(size * 0.90))
+              max_side = max(1, int(size * 0.84))
               mark = ImageOps.contain(image, (max_side, max_side), Image.Resampling.LANCZOS)
               x = (size - mark.width) // 2
               y = (size - mark.height) // 2
@@ -52,18 +53,15 @@ jobs:
               Path('assets/mova-app-icon-192.png'): 192,
               Path('assets/mova-app-icon-512.png'): 512,
           }
-
           for path, size in outputs.items():
-              path.parent.mkdir(parents=True, exist_ok=True)
               render(size).save(path, 'PNG', optimize=True)
 
-          ico = render(256)
-          ico.save('favicon.ico', format='ICO', sizes=[
-              (16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)
+          render(256).save('favicon.ico', format='ICO', sizes=[
+              (16,16), (32,32), (48,48), (64,64), (128,128), (256,256)
           ])
           PY
 
-      - name: Wire browser favicon and PWA app icons
+      - name: Wire new wordmark, mobile icon, browser favicon and app icon
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -73,28 +71,38 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          # Remove existing favicon / Apple icon declarations so browsers do not keep
-          # selecting an older MOVA icon from another declaration.
+          # Replace previous desktop/mobile branding references with the approved v180 assets.
+          replacements = {
+              'assets/MOVA-approved-MTrading-logo.png': 'assets/MOVA-NEW-Iconword-W-logo.svg?v=180',
+              '/assets/MOVA-approved-MTrading-logo.png': '/assets/MOVA-NEW-Iconword-W-logo.svg?v=180',
+              'assets/MOVA-header-wordmark-text-only-transparent-FIXED.png': 'assets/MOVA-NEW-Iconword-W-logo.svg?v=180',
+              '/assets/MOVA-header-wordmark-text-only-transparent-FIXED.png': '/assets/MOVA-NEW-Iconword-W-logo.svg?v=180',
+              'assets/MOVA-M-prem-icon.png': 'assets/MOVA-QIcon-logo.svg?v=180',
+              '/assets/MOVA-M-prem-icon.png': '/assets/MOVA-QIcon-logo.svg?v=180',
+          }
+          for old, new in replacements.items():
+              s = s.replace(old, new)
+
+          # Keep the existing mobile Home/navigation path, whose SVG was replaced with the new icon.
+          # Remove old browser icon declarations so there is a single unambiguous favicon set.
           s = re.sub(
               r'\s*<link\b[^>]*\brel=["\'](?:shortcut\s+icon|icon|apple-touch-icon)["\'][^>]*>',
-              '',
-              s,
-              flags=re.I,
+              '', s, flags=re.I,
           )
-
           favicon_links = '''
-  <link rel="icon" href="/favicon.ico?v=179" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=179">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png?v=179">
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=179">
+  <link rel="icon" type="image/svg+xml" href="/assets/MOVA-QIcon-logo.svg?v=180">
+  <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64x64.png?v=180">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=180">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png?v=180">
+  <link rel="shortcut icon" href="/favicon.ico?v=180">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=180">
 '''
-
           if '</head>' not in s:
               raise SystemExit('index.html has no </head> tag')
           s = s.replace('</head>', favicon_links + '</head>', 1)
 
-          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v179 PREMIUM M FAVICON -->', s, count=1)
-          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v179-premium-m-favicon"', s, count=1)
+          s = re.sub(r'<!-- MOVA BUILD v\d+[^>]*-->', '<!-- MOVA BUILD v180 NEW BRAND SYSTEM -->', s, count=1)
+          s = re.sub(r'data-mova-build="[^"]+"', 'data-mova-build="v180-new-brand-system"', s, count=1)
           p.write_text(s, encoding='utf-8')
 
           manifest_path = Path('manifest.webmanifest')
@@ -102,23 +110,13 @@ jobs:
           manifest['background_color'] = '#000000'
           manifest['theme_color'] = '#000000'
           manifest['icons'] = [
-              {
-                  'src': 'assets/mova-app-icon-192.png?v=179',
-                  'sizes': '192x192',
-                  'type': 'image/png',
-                  'purpose': 'any maskable'
-              },
-              {
-                  'src': 'assets/mova-app-icon-512.png?v=179',
-                  'sizes': '512x512',
-                  'type': 'image/png',
-                  'purpose': 'any maskable'
-              }
+              {'src':'assets/mova-app-icon-192.png?v=180','sizes':'192x192','type':'image/png','purpose':'any maskable'},
+              {'src':'assets/mova-app-icon-512.png?v=180','sizes':'512x512','type':'image/png','purpose':'any maskable'}
           ]
           manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
           PY
 
-      - name: Commit premium favicon assets and wiring
+      - name: Commit MOVA v180 branding
         run: |
           git config user.name "mova-build-bot"
           git config user.email "actions@users.noreply.github.com"
@@ -135,6 +133,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes needed"
           else
-            git commit -m "Apply premium MOVA M favicon and app icon"
+            git commit -m "Apply MOVA v180 desktop and mobile branding"
             git push origin main
           fi
