@@ -43,31 +43,57 @@ if(!html.includes(heroOld)) throw new Error('Company entry patch: company resear
 html=html.replace(heroOld,heroNew);
 
 const visualFn=`
+function loadUsableCompanyBackground(bg,primary,fallback){
+  const tryUrl=(url,next)=>{
+    if(!url){next();return}
+    const probe=new Image();
+    probe.onload=()=>{
+      const w=probe.naturalWidth||0,h=probe.naturalHeight||0;
+      const ratio=h?w/h:0;
+      if(w>=700 && h>=220 && ratio>=1.55){bg.src=url;bg.style.display='block'}
+      else next();
+    };
+    probe.onerror=next;
+    probe.src=url;
+  };
+  tryUrl(primary,()=>tryUrl(fallback,()=>{bg.removeAttribute('src');bg.style.display='none'}));
+}
 async function hydrateCompanyVisual(k){
   const logo=document.getElementById('crCompanyLogo');
   const bg=document.getElementById('crCompanyBackground');
   if(logo){
-    logo.style.display='block';
-    logo.src='/api/company-logo?symbol='+encodeURIComponent(k)+'&v=189';
+    logo.removeAttribute('src');
+    logo.style.display='none';
     logo.onerror=()=>{logo.style.display='none'};
   }
-  if(bg){
-    bg.removeAttribute('src');
-    bg.style.display='none';
-  }
+  if(bg){bg.removeAttribute('src');bg.style.display='none'}
   if(location.protocol==='file:')return;
   try{
     const r=await fetch('/api/fundamentals?symbol='+encodeURIComponent(k),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     const site=d?.profile?.website||'';
-    if(d?.profile?.logo && logo){logo.src=d.profile.logo;logo.style.display='block'}
-    if(!site)return;
+
+    /* Keep the profile logo source stable. Do NOT overwrite it later with a random page icon. */
+    if(logo){
+      const stableLogo=d?.profile?.logo||('/api/company-logo?symbol='+encodeURIComponent(k)+'&v=190');
+      logo.src=stableLogo;
+      logo.style.display='block';
+      logo.onerror=()=>{
+        if(!String(logo.src).includes('/api/company-logo')){
+          logo.onerror=()=>{logo.style.display='none'};
+          logo.src='/api/company-logo?symbol='+encodeURIComponent(k)+'&v=190';
+        }else logo.style.display='none';
+      };
+    }
+
+    if(!site||!bg)return;
     const vr=await fetch('/api/company-visual?url='+encodeURIComponent(site),{cache:'no-store'});
     if(!vr.ok)return;
     const v=await vr.json();
-    if(v?.logo && logo){logo.src=v.logo;logo.style.display='block'}
-    if(v?.background && bg){bg.src=v.background;bg.style.display='block'}
+
+    /* Banner and logo are separate concerns. Only use wide, genuinely banner-like images here. */
+    loadUsableCompanyBackground(bg,v?.background||'',v?.fallbackBackground||'');
   }catch(_){}
 }
 `;
@@ -81,13 +107,13 @@ if(!html.includes(hydrateCall)) throw new Error('Company entry patch: company re
 html=html.replace(hydrateCall,`  hydrateCompanyVisual(k);initResearchChart(k);hydrateCompanyHistoryLive(k,a);hydrateCompanyFinancialsLive(k);switchCRTab('overview');window.scrollTo({top:0,behavior:'auto'});updateTopButton();`);
 
 const css=`
-<style id="mova-company-visuals-v189">
+<style id="mova-company-visuals-v190">
 .cr-visual-hero{position:relative!important;overflow:hidden!important;isolation:isolate!important;min-height:230px!important}
-.cr-company-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:-3;opacity:.32;filter:saturate(.8) contrast(1.05)}
-.cr-company-overlay{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(4,12,19,.98) 0%,rgba(4,12,19,.88) 46%,rgba(4,12,19,.58) 100%)}
+.cr-company-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:-3;opacity:.30;filter:saturate(.86) contrast(1.04)}
+.cr-company-overlay{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(4,12,19,.98) 0%,rgba(4,12,19,.90) 48%,rgba(4,12,19,.62) 100%)}
 .cr-company-copy{position:relative;z-index:1;min-width:0}
 .cr-company-heading-row{display:flex;align-items:center;gap:16px;min-width:0}
-.cr-company-logo{width:72px;height:72px;object-fit:contain;border-radius:16px;padding:8px;background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 28px rgba(0,0,0,.28);flex:0 0 auto}
+.cr-company-logo{width:72px;height:72px;object-fit:contain;border-radius:16px;padding:8px;background:#fff;border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 28px rgba(0,0,0,.28);flex:0 0 auto}
 @media(max-width:740px){.cr-visual-hero{min-height:210px!important}.cr-company-heading-row{align-items:flex-start;gap:12px}.cr-company-logo{width:56px;height:56px;border-radius:13px;padding:6px}.cr-company-overlay{background:linear-gradient(180deg,rgba(4,12,19,.72),rgba(4,12,19,.97) 72%)}}
 </style>
 `;
@@ -95,4 +121,4 @@ const css=`
 if(!html.includes('</head>')) throw new Error('Company entry patch: </head> missing');
 html=html.replace('</head>',css+'</head>');
 writeFileSync(file,html);
-console.log('MOVA direct ticker-to-company and company visuals v189 patch complete.');
+console.log('MOVA preview company visuals v190 patch complete.');
