@@ -71,7 +71,7 @@ const style = `
     transform:translateX(-50%)!important;
     margin:0!important;
     display:flex!important;
-    align-items:center!important;
+    align-items:left!important;
     justify-content:center!important;
     gap:34px!important;
     width:max-content!important;
