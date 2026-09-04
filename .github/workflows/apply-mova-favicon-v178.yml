@@ -71,7 +71,6 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          # Replace previous desktop/mobile branding references with the approved v180 assets.
           replacements = {
               'assets/MOVA-approved-MTrading-logo.png': 'assets/MOVA-NEW-Iconword-W-logo.svg?v=180',
               '/assets/MOVA-approved-MTrading-logo.png': '/assets/MOVA-NEW-Iconword-W-logo.svg?v=180',
@@ -83,20 +82,11 @@ jobs:
           for old, new in replacements.items():
               s = s.replace(old, new)
 
-          # Keep the existing mobile Home/navigation path, whose SVG was replaced with the new icon.
-          # Remove old browser icon declarations so there is a single unambiguous favicon set.
           s = re.sub(
               r'\s*<link\b[^>]*\brel=["\'](?:shortcut\s+icon|icon|apple-touch-icon)["\'][^>]*>',
               '', s, flags=re.I,
           )
-          favicon_links = '''
-  <link rel="icon" type="image/svg+xml" href="/assets/MOVA-QIcon-logo.svg?v=180">
-  <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64x64.png?v=180">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=180">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png?v=180">
-  <link rel="shortcut icon" href="/favicon.ico?v=180">
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=180">
-'''
+          favicon_links = '\n  <link rel="icon" type="image/svg+xml" href="/assets/MOVA-QIcon-logo.svg?v=180">\n  <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64x64.png?v=180">\n  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=180">\n  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png?v=180">\n  <link rel="shortcut icon" href="/favicon.ico?v=180">\n  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=180">\n'
           if '</head>' not in s:
               raise SystemExit('index.html has no </head> tag')
           s = s.replace('</head>', favicon_links + '</head>', 1)
