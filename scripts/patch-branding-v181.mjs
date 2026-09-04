@@ -65,7 +65,7 @@ const style = `
   }
   header nav{
     position:absolute!important;
-    left:28%!important;
+    left:clamp(24px,3vw,48px)!important;
     top:158px!important;
     bottom:auto!important;
     transform:none!important;
