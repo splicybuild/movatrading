@@ -68,11 +68,11 @@ const style = `
     left:44px!important;
     top:158px!important;
     bottom:auto!important;
-    transform:translateX(-50%)!important;
+    transform:none!important;
     margin:0!important;
     display:flex!important;
     align-items:center!important;
-    justify-content:flex-start!important;
+    justify-content:center!important;
     gap:34px!important;
     width:max-content!important;
     max-width:760px!important;
