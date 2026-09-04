@@ -42,7 +42,7 @@ const style = `
   }
   header .brand.mova-brand-v187{
     position:absolute!important;
-    left:50%!important;
+    left:48%!important;
     top:42px!important;
     transform:translateX(-50%)!important;
     width:360px!important;
@@ -65,7 +65,7 @@ const style = `
   }
   header nav{
     position:absolute!important;
-    left:clamp(24px,3vw,48px)!important;
+    left:44px!important;
     top:158px!important;
     bottom:auto!important;
     transform:none!important;
