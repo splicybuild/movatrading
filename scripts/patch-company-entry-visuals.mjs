@@ -31,7 +31,7 @@ const heroNew=`<div class="company-research-hero cr-visual-hero">
       <div class="cr-company-copy">
         <div class="cr-company-heading-row">
           <img id="crCompanyLogo" class="cr-company-logo" alt="Company logo">
-          <div>
+          <div class="cr-company-heading-text">
             <span id="crEyebrow" class="eyebrow">COMPANY RESEARCH</span>
             <h1 id="crName">Company</h1>
           </div>
@@ -104,17 +104,37 @@ if(!html.includes(hydrateCall)) throw new Error('Company entry patch: company re
 html=html.replace(hydrateCall,`  hydrateCompanyVisual(k);initResearchChart(k);hydrateCompanyHistoryLive(k,a);hydrateCompanyFinancialsLive(k);switchCRTab('overview');window.scrollTo({top:0,behavior:'auto'});updateTopButton();`);
 
 const css=`
-<style id="mova-company-visuals-v192">
+<style id="mova-company-visuals-v193">
 .cr-visual-hero{position:relative!important;overflow:hidden!important;isolation:isolate!important;min-height:230px!important}
 .cr-company-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:-3;opacity:.30;filter:saturate(.86) contrast(1.04)}
 .cr-company-overlay{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(4,12,19,.98) 0%,rgba(4,12,19,.90) 48%,rgba(4,12,19,.62) 100%)}
 .cr-company-copy{position:relative;z-index:1;min-width:0}
 .cr-company-heading-row{display:flex;align-items:center;gap:16px;min-width:0}
+.cr-company-heading-text{min-width:0}
 .cr-company-logo{width:72px;height:72px;object-fit:contain;border-radius:16px;padding:8px;background:#fff;border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 28px rgba(0,0,0,.28);flex:0 0 auto}
 @media(max-width:740px){
   .cr-visual-hero{min-height:210px!important}
-  .cr-company-heading-row{align-items:flex-start!important;gap:12px}
-  .cr-company-logo{width:56px;height:56px;border-radius:13px;padding:6px;margin-top:42px!important}
+  .cr-company-heading-row{
+    display:grid!important;
+    grid-template-columns:56px minmax(0,1fr)!important;
+    grid-template-rows:auto auto!important;
+    column-gap:12px!important;
+    row-gap:0!important;
+    align-items:start!important;
+  }
+  .cr-company-heading-text{display:contents!important}
+  .cr-company-heading-row .eyebrow{grid-column:2!important;grid-row:1!important}
+  .cr-company-heading-row h1{grid-column:2!important;grid-row:2!important;margin-top:0!important}
+  .cr-company-logo{
+    grid-column:1!important;
+    grid-row:2!important;
+    width:56px!important;
+    height:56px!important;
+    border-radius:13px!important;
+    padding:6px!important;
+    margin:0!important;
+    align-self:start!important;
+  }
   .cr-company-overlay{background:linear-gradient(180deg,rgba(4,12,19,.72),rgba(4,12,19,.97) 72%)}
 }
 </style>
@@ -123,4 +143,4 @@ const css=`
 if(!html.includes('</head>')) throw new Error('Company entry patch: </head> missing');
 html=html.replace('</head>',css+'</head>');
 writeFileSync(file,html);
-console.log('MOVA preview company visuals v192 patch complete.');
+console.log('MOVA preview company visuals v193 patch complete.');
