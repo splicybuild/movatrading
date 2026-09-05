@@ -3,9 +3,10 @@ const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
 const css=`<style id="mova-profile-signout-style">
-#mnaProfileSignOutWrap{margin-top:28px;padding-top:18px;border-top:1px solid #153446}
-#mnaProfileSignOutWrap .mna-profile-signout{min-width:140px}
-body.mova-light-theme #mnaProfileSignOutWrap{border-top-color:#c8d7df}
+#mnaSidebarSignOut{margin-top:6px!important;border-color:#3a2630!important;color:#ffb2ba!important}
+#mnaSidebarSignOut:hover{background:#2a151b!important;border-color:#8b3a48!important;color:#fff!important}
+body.mova-light-theme #mnaSidebarSignOut{background:#fff!important;border-color:#e0b4ba!important;color:#a12d3d!important}
+body.mova-light-theme #mnaSidebarSignOut:hover{background:#fff1f3!important;border-color:#c96a78!important;color:#7a1f2d!important}
 </style>`;
 html=html.replace('</head>',css+'</head>');
 
@@ -17,19 +18,22 @@ const runtime=`<script id="mova-profile-signout-runtime">(function(){
     if(typeof window.movaNAOpenAuth==='function')window.movaNAOpenAuth('signin');
   }
   function syncPlacement(){
-    const canvas=document.getElementById('mnaCanvas');
-    if(!canvas)return;
-    const settingsSignOut=document.getElementById('mnaSignOut');
-    if(settingsSignOut)settingsSignOut.style.display='none';
-    const isProfile=/Your MOVA profile/i.test(canvas.textContent||'');
-    const existing=document.getElementById('mnaProfileSignOutWrap');
-    if(!isProfile){if(existing)existing.remove();return}
-    if(existing)return;
-    const wrap=document.createElement('div');
-    wrap.id='mnaProfileSignOutWrap';
-    wrap.innerHTML='<button type="button" class="mna-btn secondary mna-profile-signout">Sign Out</button>';
-    wrap.querySelector('button').onclick=doSignOut;
-    canvas.appendChild(wrap);
+    const oldProfileWrap=document.getElementById('mnaProfileSignOutWrap');
+    if(oldProfileWrap)oldProfileWrap.remove();
+    const oldSettingsSignOut=document.getElementById('mnaSignOut');
+    if(oldSettingsSignOut)oldSettingsSignOut.style.display='none';
+    const settings=document.querySelector('.mna-side [data-mna="settings"]');
+    if(!settings)return;
+    let btn=document.getElementById('mnaSidebarSignOut');
+    if(!btn){
+      btn=document.createElement('button');
+      btn.id='mnaSidebarSignOut';
+      btn.type='button';
+      btn.className='mna-nav';
+      btn.textContent='Sign Out';
+      btn.onclick=doSignOut;
+      settings.insertAdjacentElement('afterend',btn);
+    }
   }
   const mo=new MutationObserver(syncPlacement);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){mo.observe(document.body,{subtree:true,childList:true});syncPlacement()});
@@ -38,4 +42,4 @@ const runtime=`<script id="mova-profile-signout-runtime">(function(){
 html=html.replace('</body>',runtime+'</body>');
 
 writeFileSync(file,html);
-console.log('MOVA Sign Out moved to Profile page.');
+console.log('MOVA Sign Out moved beneath Settings in account sidebar.');
