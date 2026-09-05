@@ -4,19 +4,17 @@ const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
 const css=`
-<style id="mova-preview-ticker-layout-v192">
+<style id="mova-preview-ticker-layout-v193">
 :root{--mova-ticker-clearance:0px}
 html,body{scroll-padding-top:var(--mova-ticker-clearance)!important}
 .mova-ticker-layout-spacer{display:block!important;width:100%!important;height:var(--mova-ticker-clearance)!important;min-height:var(--mova-ticker-clearance)!important;flex:0 0 var(--mova-ticker-clearance)!important;pointer-events:none!important;visibility:hidden!important}
 .page,[id="companyResearchView"],section{scroll-margin-top:var(--mova-ticker-clearance)!important}
-@media(max-width:740px){
-  body.mova-mobile-fixed-ticker{padding-top:0!important}
-}
+@media(max-width:740px){body.mova-mobile-fixed-ticker{padding-top:0!important}}
 </style>
 `;
 
 const js=`
-<script id="mova-preview-ticker-layout-runtime-v192">
+<script id="mova-preview-ticker-layout-runtime-v193">
 (function(){
   let spacer=null;
   let spacerAnchor=null;
@@ -27,8 +25,7 @@ const js=`
 
   function candidateScore(el){
     if(!el||el===document.body||el===document.documentElement)return -1;
-    const t=text(el);
-    if(!t)return -1;
+    const t=text(el); if(!t)return -1;
     let score=0;
     if(/\\bLIVE\\b/.test(t))score+=6;
     if(/Trending/.test(t))score+=6;
@@ -66,15 +63,19 @@ const js=`
     return best;
   }
 
-  function clearSpacer(){
-    if(spacer){spacer.remove();spacer=null;spacerAnchor=null}
+  function mobileHeaderBottom(){
+    const header=document.querySelector('header');
+    if(!header)return 0;
+    const r=header.getBoundingClientRect();
+    return Math.max(0,Math.min(window.innerHeight,r.bottom));
   }
+
+  function clearSpacer(){if(spacer){spacer.remove();spacer=null;spacerAnchor=null}}
 
   function restoreForcedMobile(){
     if(!forcedMobileAnchor||!forcedMobilePrevious)return;
     for(const [key,value] of Object.entries(forcedMobilePrevious))forcedMobileAnchor.style[key]=value;
-    forcedMobileAnchor=null;
-    forcedMobilePrevious=null;
+    forcedMobileAnchor=null;forcedMobilePrevious=null;
     document.body.classList.remove('mova-mobile-fixed-ticker');
   }
 
@@ -91,33 +92,20 @@ const js=`
   }
 
   function apply(){
-    const ticker=findTicker();
-    if(!ticker)return;
+    const ticker=findTicker(); if(!ticker)return;
     let anchor=positionedAncestor(ticker);
     let cs=getComputedStyle(anchor);
     const isMobile=window.matchMedia('(max-width:740px)').matches;
 
     if(!isMobile && forcedMobileAnchor)restoreForcedMobile();
 
-    /* On mobile the base ticker is not persistently positioned, so force the compact
-       ticker wrapper to fixed at the viewport top. Keep an equal spacer in normal flow. */
     if(isMobile && cs.position!=='fixed'){
       if(forcedMobileAnchor && forcedMobileAnchor!==anchor)restoreForcedMobile();
       if(!forcedMobileAnchor){
         forcedMobileAnchor=anchor;
-        forcedMobilePrevious={
-          position:anchor.style.position,
-          top:anchor.style.top,
-          left:anchor.style.left,
-          right:anchor.style.right,
-          width:anchor.style.width,
-          zIndex:anchor.style.zIndex,
-          background:anchor.style.background,
-          boxSizing:anchor.style.boxSizing
-        };
+        forcedMobilePrevious={position:anchor.style.position,top:anchor.style.top,left:anchor.style.left,right:anchor.style.right,width:anchor.style.width,zIndex:anchor.style.zIndex,background:anchor.style.background,boxSizing:anchor.style.boxSizing};
       }
       anchor.style.position='fixed';
-      anchor.style.top='0px';
       anchor.style.left='0px';
       anchor.style.right='0px';
       anchor.style.width='100%';
@@ -128,14 +116,19 @@ const js=`
       cs=getComputedStyle(anchor);
     }
 
+    if(isMobile && cs.position==='fixed'){
+      /* At the top of the page, sit immediately below the MOVA header/logo.
+         As the normal header scrolls away, smoothly move up until pinned at 0. */
+      anchor.style.top=mobileHeaderBottom()+'px';
+    }
+
     const rect=anchor.getBoundingClientRect();
     const clearance=Math.ceil(Math.max(48,rect.height)+8);
     document.documentElement.style.setProperty('--mova-ticker-clearance',clearance+'px');
     anchor.style.zIndex=isMobile?'80':'60';
 
-    if(cs.position==='fixed'){
-      ensureSpacer(anchor,clearance);
-    }else{
+    if(cs.position==='fixed')ensureSpacer(anchor,clearance);
+    else{
       clearSpacer();
       if(cs.position==='sticky'){
         anchor.style.top='0px';
@@ -144,10 +137,17 @@ const js=`
     }
   }
 
+  let scrollQueued=false;
+  function onScroll(){
+    if(scrollQueued)return;
+    scrollQueued=true;
+    requestAnimationFrame(()=>{scrollQueued=false;apply()});
+  }
   const schedule=()=>requestAnimationFrame(()=>requestAnimationFrame(apply));
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule);else schedule();
   window.addEventListener('load',schedule);
   window.addEventListener('resize',schedule);
+  window.addEventListener('scroll',onScroll,{passive:true});
   window.addEventListener('orientationchange',()=>setTimeout(schedule,120));
   window.addEventListener('hashchange',schedule);
   document.addEventListener('click',()=>setTimeout(schedule,40),true);
@@ -161,4 +161,4 @@ if(!html.includes('</body>'))throw new Error('Ticker layout patch: </body> missi
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',js+'</body>');
 writeFileSync(file,html);
-console.log('MOVA preview fixed ticker layout reservation v192 complete.');
+console.log('MOVA preview mobile ticker/header handoff v193 complete.');
