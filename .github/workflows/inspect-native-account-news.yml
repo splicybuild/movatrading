@@ -1,0 +1,31 @@
+name: Inspect native account/news output
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run build
+      - name: Inspect built output
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('dist/index.html').read_text()
+          needles=['accountBtn.addEventListener','function openAccount()','function openAccountAccess()','id="movaV2Training"','function renderNews()','function movaNativeAccountOpen()','function movaNativeAccountBoot()','movaNativeRestoreNews()','id="movaNativeAuth"','id="newsGrid"']
+          for needle in needles:
+              print('\n===',needle,'===')
+              start=0
+              for _ in range(5):
+                  i=s.find(needle,start)
+                  if i<0: break
+                  print('INDEX',i)
+                  print(s[max(0,i-500):i+1600])
+                  start=i+len(needle)
+          PY
