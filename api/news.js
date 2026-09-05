@@ -1,3 +1,4 @@
+// MOVA News image resolver v2 — prefer article-specific imagery before any generic fallback.
 function norm(h){return String(h||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();}
 function unique(items){const seen=new Set();return items.filter(x=>{const n=norm(x.title||x.headline),key=n.split(" ").slice(0,13).join(" ");if(!key||seen.has(key))return false;seen.add(key);return true;});}
 function decodeXml(s){return String(s||"").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'");}
@@ -6,6 +7,7 @@ function attrTag(block,name,attr){const m=block.match(new RegExp(`<${name}[^>]*\
 function htmlImage(s){const m=String(s||"").match(/<img[^>]+src=["']([^"']+)["']/i);return m?decodeXml(m[1]).trim():"";}
 function stripHtml(s){return decodeXml(String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ")).trim();}
 function absolutize(url,base){try{return new URL(url,base).href}catch{return url||""}}
+function usableImage(url){if(!url)return false;const s=String(url).toLowerCase();return !(/logo|icon|avatar|sprite|pixel|tracking|favicon/.test(s));}
 async function resolveArticle(url){
   if(!url)return {url:"",image:""};
   try{
@@ -13,18 +15,26 @@ async function resolveArticle(url){
     const finalUrl=r.url||url,type=r.headers.get("content-type")||"";
     if(!r.ok||!type.includes("text/html"))return {url:finalUrl,image:""};
     const html=await r.text();
-    const pats=[
-      /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
-      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+    const metaPatterns=[
+      /<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i,
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i,
       /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i,
       /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i
     ];
-    for(const p of pats){const m=html.match(p);if(m&&m[1])return {url:finalUrl,image:absolutize(decodeXml(m[1]),finalUrl)}}
+    for(const p of metaPatterns){const m=html.match(p);if(m&&usableImage(m[1]))return {url:finalUrl,image:absolutize(decodeXml(m[1]),finalUrl)}}
+    const jsonLdBlocks=html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi)||[];
+    for(const block of jsonLdBlocks){
+      const body=block.replace(/^<script[^>]*>/i,'').replace(/<\/script>$/i,'');
+      for(const re of [/"image"\s*:\s*"([^"]+)"/i,/"image"\s*:\s*\[\s*"([^"]+)"/i,/"image"\s*:\s*\{[\s\S]*?"url"\s*:\s*"([^"]+)"/i]){
+        const m=body.match(re);if(m&&usableImage(m[1]))return {url:finalUrl,image:absolutize(decodeXml(m[1].replace(/\\\//g,'/')),finalUrl)};
+      }
+    }
+    const imgs=[...html.matchAll(/<img[^>]+(?:src|data-src)=["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]).filter(usableImage);
+    if(imgs.length)return {url:finalUrl,image:absolutize(decodeXml(imgs[0]),finalUrl)};
     return {url:finalUrl,image:""};
   }catch{return {url,image:""}}
 }
 const FALLBACK_IMAGES=[
- "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=900&q=80",
  "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=900&q=80",
  "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=900&q=80",
  "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=900&q=80",
@@ -47,7 +57,7 @@ async function bingMarketNews(){
     }catch{}
   }
   const items=unique(all).sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0)).slice(0,20);
-  return Promise.all(items.map(async(item,i)=>{if(item.image)return item;const r=await resolveArticle(item.url);return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]}}));
+  return Promise.all(items.map(async(item,i)=>{if(usableImage(item.image))return item;const r=await resolveArticle(item.url);return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]}}));
 }
 export default{async fetch(request){
   if(request.method!=="GET")return Response.json({error:"Method not allowed"},{status:405});
