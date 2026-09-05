@@ -16,15 +16,16 @@ body.mova-light-theme .mna-pie:after{background:#fff!important}
 body.mova-light-theme .mobile-nav{background:#f4f7f9!important;border-color:#c8d7df!important}
 body.mova-light-theme .mobile-nav button,body.mova-light-theme header nav button{color:#516976!important}
 body.mova-light-theme .mova-desktop-account-btn{background:#fff!important;color:#14212b!important;border-color:#aac2ce!important}
+body.mova-light-theme .mova-clean-kicker,body.mova-light-theme .mna-kicker{display:inline-block!important;background:#0a2230!important;color:#66ff8a!important;border:1px solid #21475b!important;border-radius:7px!important;padding:5px 8px!important;line-height:1!important;letter-spacing:.12em!important}
 </style>`;
 html=html.replace('</head>',css+'</head>');
 
-// Give Settings theme selector an id and make the selection persistent/app-wide.
 html=html.replace('<select class="mna-input" style="width:160px"><option>Dark</option><option>Light</option></select>','<select id="mnaThemeSelect" class="mna-input" style="width:160px" onchange="movaNASetTheme(this.value)"><option>Dark</option><option>Light</option></select>');
 
 const helpers=`
-function movaNASetTheme(value){var light=String(value||'').toLowerCase()==='light';document.body.classList.toggle('mova-light-theme',light);try{localStorage.setItem('movaThemeV1',light?'light':'dark')}catch(e){}}
-function movaNAApplyTheme(){var v='dark';try{v=localStorage.getItem('movaThemeV1')||'dark'}catch(e){};document.body.classList.toggle('mova-light-theme',v==='light');var s=document.getElementById('mnaThemeSelect');if(s)s.value=v==='light'?'Light':'Dark'}
+function movaNASetHeaderLogo(light){var img=document.querySelector('.brand.mova-brand-v187 img');if(img)img.src=light?'assets/MOVA-NEW-Iconword-B-logo.svg?v=light1':'assets/MOVA-NEW-Iconword-W-logo.svg?v=187'}
+function movaNASetTheme(value){var light=String(value||'').toLowerCase()==='light';document.body.classList.toggle('mova-light-theme',light);movaNASetHeaderLogo(light);try{localStorage.setItem('movaThemeV1',light?'light':'dark')}catch(e){}}
+function movaNAApplyTheme(){var v='dark';try{v=localStorage.getItem('movaThemeV1')||'dark'}catch(e){};var light=v==='light';document.body.classList.toggle('mova-light-theme',light);movaNASetHeaderLogo(light);var s=document.getElementById('mnaThemeSelect');if(s)s.value=light?'Light':'Dark'}
 `;
 const marker='function openCompanyResearch(';
 const pos=html.indexOf(marker);if(pos<0)throw new Error('main app marker not found');
@@ -32,10 +33,9 @@ const scriptStart=html.lastIndexOf('<script',pos),openEnd=html.indexOf('>',scrip
 new Function(helpers);
 html=html.slice(0,openEnd+1)+helpers+html.slice(openEnd+1);
 
-// Apply persisted theme after DOM creation and whenever Settings is rendered.
 html=html.replace("if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',movaNativeAccountBoot);else movaNativeAccountBoot();","if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){movaNativeAccountBoot();movaNAApplyTheme()});else{movaNativeAccountBoot();movaNAApplyTheme()}");
 html=html.replace("if(section==='settings')document.getElementById('mnaSignOut').onclick=function(){","if(section==='settings'){movaNAApplyTheme();document.getElementById('mnaSignOut').onclick=function(){");
 html=html.replace("movaNACloseWorkspace();movaNAOpenAuth('signin')}}","movaNACloseWorkspace();movaNAOpenAuth('signin')}}}");
 
 writeFileSync(file,html);
-console.log('MOVA full light theme + Settings theme persistence complete.');
+console.log('MOVA full light theme + header logo + kicker contrast complete.');
