@@ -4,7 +4,7 @@ const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
 const css=`
-<style id="mova-preview-ticker-layout-v193">
+<style id="mova-preview-ticker-layout-v194">
 :root{--mova-ticker-clearance:0px}
 html,body{scroll-padding-top:var(--mova-ticker-clearance)!important}
 .mova-ticker-layout-spacer{display:block!important;width:100%!important;height:var(--mova-ticker-clearance)!important;min-height:var(--mova-ticker-clearance)!important;flex:0 0 var(--mova-ticker-clearance)!important;pointer-events:none!important;visibility:hidden!important}
@@ -14,7 +14,7 @@ html,body{scroll-padding-top:var(--mova-ticker-clearance)!important}
 `;
 
 const js=`
-<script id="mova-preview-ticker-layout-runtime-v193">
+<script id="mova-preview-ticker-layout-runtime-v194">
 (function(){
   let spacer=null;
   let spacerAnchor=null;
@@ -25,13 +25,15 @@ const js=`
 
   function candidateScore(el){
     if(!el||el===document.body||el===document.documentElement)return -1;
+    const r=el.getBoundingClientRect();
+    const cs=getComputedStyle(el);
+    if(r.width<10||r.height<10||cs.display==='none'||cs.visibility==='hidden'||Number(cs.opacity||1)===0)return -1;
     const t=text(el); if(!t)return -1;
     let score=0;
     if(/\\bLIVE\\b/.test(t))score+=6;
     if(/Trending/.test(t))score+=6;
     if(/Watchlist/.test(t))score+=6;
     score+=Math.min(8,(t.match(/\\$[0-9]/g)||[]).length);
-    const r=el.getBoundingClientRect();
     if(r.width>=window.innerWidth*.75)score+=4;
     if(r.height>25&&r.height<190)score+=4;
     if(r.height>260)score-=8;
@@ -79,6 +81,12 @@ const js=`
     document.body.classList.remove('mova-mobile-fixed-ticker');
   }
 
+  function resetTickerLayout(){
+    restoreForcedMobile();
+    clearSpacer();
+    document.documentElement.style.setProperty('--mova-ticker-clearance','0px');
+  }
+
   function ensureSpacer(anchor,clearance){
     if(!spacer || spacerAnchor!==anchor){
       clearSpacer();
@@ -92,7 +100,8 @@ const js=`
   }
 
   function apply(){
-    const ticker=findTicker(); if(!ticker)return;
+    const ticker=findTicker();
+    if(!ticker){resetTickerLayout();return;}
     let anchor=positionedAncestor(ticker);
     let cs=getComputedStyle(anchor);
     const isMobile=window.matchMedia('(max-width:740px)').matches;
@@ -117,8 +126,6 @@ const js=`
     }
 
     if(isMobile && cs.position==='fixed'){
-      /* At the top of the page, sit immediately below the MOVA header/logo.
-         As the normal header scrolls away, smoothly move up until pinned at 0. */
       anchor.style.top=mobileHeaderBottom()+'px';
     }
 
@@ -161,4 +168,4 @@ if(!html.includes('</body>'))throw new Error('Ticker layout patch: </body> missi
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',js+'</body>');
 writeFileSync(file,html);
-console.log('MOVA preview mobile ticker/header handoff v193 complete.');
+console.log('MOVA preview mobile landing-safe ticker v194 complete.');
