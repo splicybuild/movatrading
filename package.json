@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build-v2.mjs && node scripts/patch-account.mjs && node scripts/patch-chart-gaps.mjs && node scripts/patch-nav-underline.mjs && node scripts/patch-desktop-account-chartview.mjs && node scripts/patch-chart-pan-verified.mjs && node scripts/patch-chart-portrait-desktop.mjs && node scripts/patch-company-profile-live.mjs && node scripts/patch-company-summary.mjs && node scripts/patch-learn-photo.mjs && node scripts/patch-branding-v181.mjs && node scripts/patch-route-refresh.mjs && node scripts/patch-company-entry-visuals.mjs && node scripts/patch-preview-ticker-layout.mjs && node scripts/patch-trade-lab-clean-preview.mjs && node scripts/patch-trade-lab-clean-v2.mjs"
+    "build": "node scripts/build-v2.mjs && node scripts/patch-account.mjs && node scripts/patch-chart-gaps.mjs && node scripts/patch-nav-underline.mjs && node scripts/patch-desktop-account-chartview.mjs && node scripts/patch-chart-pan-verified.mjs && node scripts/patch-chart-portrait-desktop.mjs && node scripts/patch-company-profile-live.mjs && node scripts/patch-company-summary.mjs && node scripts/patch-learn-photo.mjs && node scripts/patch-branding-v181.mjs && node scripts/patch-route-refresh.mjs && node scripts/patch-company-entry-visuals.mjs && node scripts/patch-preview-ticker-layout.mjs && node scripts/patch-trade-lab-clean-preview.mjs && node scripts/patch-trade-lab-clean-v2.mjs && node scripts/patch-trade-lab-native-runtime.mjs"
   }
 }
