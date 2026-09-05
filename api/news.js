@@ -8,13 +8,13 @@ function decodeXml(s){return String(s||"").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g
 function tag(block,name){const m=block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`,`i`));return m?decodeXml(m[1]).trim():"";}
 function attrTag(block,name,attr){const m=block.match(new RegExp(`<${name}[^>]*\\b${attr}=["']([^"']+)["'][^>]*>`,`i`));return m?decodeXml(m[1]).trim():"";}
 function htmlImage(s){const m=String(s||"").match(/<img[^>]+src=["']([^"']+)["']/i);return m?decodeXml(m[1]).trim():"";}
+function stripHtml(s){return decodeXml(String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ")).trim();}
 function absolutize(url,base){try{return new URL(url,base).href}catch{return url||""}}
 async function resolveArticle(url){
   if(!url)return {url:"",image:""};
   try{
     const r=await fetch(url,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0","Accept":"text/html,application/xhtml+xml"}});
-    const finalUrl=r.url||url;
-    const type=r.headers.get("content-type")||"";
+    const finalUrl=r.url||url,type=r.headers.get("content-type")||"";
     if(!r.ok||!type.includes("text/html"))return {url:finalUrl,image:""};
     const html=await r.text();
     const patterns=[
@@ -34,6 +34,26 @@ const FALLBACK_IMAGES=[
   "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=900&q=80",
   "https://images.unsplash.com/photo-1569025690938-a00729c9e1f9?auto=format&fit=crop&w=900&q=80"
 ];
+async function bingReuters(){
+  const queries=["Reuters markets stocks","Reuters Nasdaq technology stocks","Reuters oil markets","Reuters gold markets"];
+  const all=[];
+  for(const q of queries){
+    try{
+      const u=new URL("https://www.bing.com/news/search");u.searchParams.set("q",q);u.searchParams.set("format","rss");u.searchParams.set("setlang","en-GB");u.searchParams.set("cc","GB");
+      const r=await fetch(u,{headers:{"User-Agent":"Mozilla/5.0"}});if(!r.ok)continue;const xml=await r.text();const blocks=xml.match(/<item>[\s\S]*?<\/item>/gi)||[];
+      for(const b of blocks.slice(0,10)){
+        const rawTitle=tag(b,"title"),url=tag(b,"link"),pub=tag(b,"pubDate"),desc=tag(b,"description");
+        const source=tag(b,"News:Source")||tag(b,"source")||(/Reuters/i.test(rawTitle+" "+desc)?"Reuters":"Market news");
+        if(source!=="Reuters"&&!/Reuters/i.test(rawTitle+" "+desc))continue;
+        const title=rawTitle.replace(/\s+-\s+Reuters$/i,"").trim();
+        const image=attrTag(b,"media:content","url")||attrTag(b,"media:thumbnail","url")||attrTag(b,"enclosure","url")||htmlImage(desc);
+        if(title&&url)all.push({title,headline:title,body:stripHtml(desc).slice(0,260),summary:stripHtml(desc).slice(0,260),source:"Reuters",url,image:image?absolutize(image,url):"",datetime:pub?new Date(pub).toISOString():new Date().toISOString()});
+      }
+    }catch{}
+  }
+  const items=unique(all).sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0)).slice(0,20);
+  return Promise.all(items.map(async (item,i)=>{if(item.image)return item;const r=await resolveArticle(item.url);return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]}}));
+}
 async function googleReuters(){
   const queries=["site:reuters.com markets stocks","site:reuters.com Nasdaq technology stocks","site:reuters.com oil markets","site:reuters.com gold markets"];
   const raw=[];
@@ -41,20 +61,10 @@ async function googleReuters(){
     try{
       const u=new URL("https://news.google.com/rss/search");u.searchParams.set("q",q);u.searchParams.set("hl","en-GB");u.searchParams.set("gl","GB");u.searchParams.set("ceid","GB:en");
       const r=await fetch(u,{headers:{"User-Agent":"Mozilla/5.0"}});if(!r.ok)continue;const xml=await r.text();const items=xml.match(/<item>[\s\S]*?<\/item>/gi)||[];
-      items.slice(0,8).forEach((b,i)=>{
-        const title=tag(b,"title").replace(/\s+-\s+Reuters$/i,"");
-        const url=tag(b,"link"),pub=tag(b,"pubDate"),desc=tag(b,"description");
-        const feedImage=attrTag(b,"media:content","url")||attrTag(b,"media:thumbnail","url")||attrTag(b,"enclosure","url")||htmlImage(desc);
-        if(title&&url)raw.push({title,headline:title,body:"Open the full Reuters story for the latest market details.",summary:"Open the full Reuters story for the latest market details.",source:"Reuters",url,image:feedImage,datetime:pub?new Date(pub).toISOString():new Date().toISOString()});
-      });
+      items.slice(0,8).forEach(b=>{const title=tag(b,"title").replace(/\s+-\s+Reuters$/i,"");const url=tag(b,"link"),pub=tag(b,"pubDate"),desc=tag(b,"description");const feedImage=attrTag(b,"media:content","url")||attrTag(b,"media:thumbnail","url")||attrTag(b,"enclosure","url")||htmlImage(desc);if(title&&url)raw.push({title,headline:title,body:stripHtml(desc).slice(0,260),summary:stripHtml(desc).slice(0,260),source:"Reuters",url,image:feedImage,datetime:pub?new Date(pub).toISOString():new Date().toISOString()});});
     }catch{}
   }
   const deduped=unique(raw).sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0)).slice(0,20);
-  const resolved=await Promise.all(deduped.map(async (item,i)=>{
-    if(item.image)return {...item,image:absolutize(item.image,item.url)};
-    const r=await resolveArticle(item.url);
-    return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]};
-  }));
-  return resolved;
+  return Promise.all(deduped.map(async (item,i)=>{if(item.image)return {...item,image:absolutize(item.image,item.url)};const r=await resolveArticle(item.url);return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]}}));
 }
-export default{async fetch(request){if(request.method!=="GET")return Response.json({error:"Method not allowed"},{status:405});const u=new URL(request.url);try{const key=process.env.FINNHUB_API_KEY;let items=[];if(key){const symbols=(u.searchParams.get("symbols")||"NVDA,MSFT,AAPL,AMZN,META,GOOGL,TSLA,AVGO").split(",").map(alias).filter(s=>s&&s!=="QQQ"&&!["GOLD","SILVER","OIL"].includes(s)),all=[];for(const s of symbols){try{all.push(...await company(s,key));}catch{}}items=unique(all).sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0)).slice(0,80);items=await Promise.all(items.slice(0,20).map(async (item,i)=>{if(item.image)return item;const r=await resolveArticle(item.url);return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]}}));}if(!items.length)items=await googleReuters();return Response.json({asOf:new Date().toISOString(),items},{headers:{"Cache-Control":"public, s-maxage=120, stale-while-revalidate=300"}});}catch(e){return Response.json({error:e.message||"News request failed"},{status:500});}}};
+export default{async fetch(request){if(request.method!=="GET")return Response.json({error:"Method not allowed"},{status:405});const u=new URL(request.url);try{const key=process.env.FINNHUB_API_KEY;let items=[];if(key){const symbols=(u.searchParams.get("symbols")||"NVDA,MSFT,AAPL,AMZN,META,GOOGL,TSLA,AVGO").split(",").map(alias).filter(s=>s&&s!=="QQQ"&&!["GOLD","SILVER","OIL"].includes(s)),all=[];for(const s of symbols){try{all.push(...await company(s,key));}catch{}}items=unique(all).sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0)).slice(0,80);items=await Promise.all(items.slice(0,20).map(async (item,i)=>{if(item.image)return item;const r=await resolveArticle(item.url);return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]}}));}if(!items.length)items=await bingReuters();if(!items.length)items=await googleReuters();return Response.json({asOf:new Date().toISOString(),items},{headers:{"Cache-Control":"public, s-maxage=120, stale-while-revalidate=300"}});}catch(e){return Response.json({error:e.message||"News request failed"},{status:500});}}};
