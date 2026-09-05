@@ -10,9 +10,7 @@ html=html.replace('</head>',css+'</head>');
 
 const runtime=`<script id="mova-forgot-password-runtime">(function(){
   const ACCOUNT_KEY='movaNativeAccountV2';
-  const SESSION_KEY='movaNativeSessionV2';
   const getAccount=()=>{try{return JSON.parse(localStorage.getItem(ACCOUNT_KEY)||'null')}catch(e){return null}};
-  const saveAccount=a=>{try{localStorage.setItem(ACCOUNT_KEY,JSON.stringify(a));return true}catch(e){return false}};
   const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   function renderReset(){
@@ -21,23 +19,12 @@ const runtime=`<script id="mova-forgot-password-runtime">(function(){
     if(!body||!title)return;
     const a=getAccount();
     title.textContent='Reset your password';
-    body.innerHTML='<p class="mna-reset-note">Enter the email address for your MOVA account and choose a new password.</p><form id="mnaResetForm" class="mna-form"><label class="full">EMAIL<input id="mnaResetEmail" class="mna-input" type="email" required value="'+esc(a&&a.email||'')+'"></label><label>NEW PASSWORD<input id="mnaResetPass" class="mna-input" type="password" minlength="8" required></label><label>CONFIRM PASSWORD<input id="mnaResetConfirm" class="mna-input" type="password" minlength="8" required></label><div class="full"><button class="mna-btn" type="submit">Reset password</button><div id="mnaResetMsg" class="mna-msg"></div></div></form><div class="mna-reset-actions"><button id="mnaResetBack" class="mna-btn secondary" type="button">Back to sign in</button></div>';
+    body.innerHTML='<p class="mna-reset-note">Enter the email address linked to your MOVA account. We\'ll send you a secure link to reset your password.</p><form id="mnaResetForm" class="mna-form"><label class="full">EMAIL<input id="mnaResetEmail" class="mna-input" type="email" required value="'+esc(a&&a.email||'')+'"></label><div class="full"><button class="mna-btn" type="submit">Send reset link</button><div id="mnaResetMsg" class="mna-msg"></div></div></form><div class="mna-reset-actions"><button id="mnaResetBack" class="mna-btn secondary" type="button">Back to sign in</button></div>';
     document.getElementById('mnaResetBack').onclick=function(){if(typeof window.movaNARenderAuth==='function')window.movaNARenderAuth('signin')};
     document.getElementById('mnaResetForm').onsubmit=function(e){
       e.preventDefault();
-      const msg=document.getElementById('mnaResetMsg');
-      const account=getAccount();
       const email=document.getElementById('mnaResetEmail').value.trim().toLowerCase();
-      const pw=document.getElementById('mnaResetPass').value;
-      const cf=document.getElementById('mnaResetConfirm').value;
-      if(!account){msg.textContent='No saved MOVA account exists on this browser.';return}
-      if(email!==String(account.email||'').toLowerCase()){msg.textContent='That email does not match the saved MOVA account.';return}
-      if(pw.length<8){msg.textContent='Password must be at least 8 characters.';return}
-      if(pw!==cf){msg.textContent='Passwords do not match.';return}
-      account.password=pw;
-      if(!saveAccount(account)){msg.textContent='This browser blocked the password update.';return}
-      try{localStorage.removeItem(SESSION_KEY)}catch(err){}
-      body.innerHTML='<div class="mna-success"><h3>Password reset successfully</h3><p>Your password has been updated. You can now sign in using your new password.</p><button id="mnaResetDone" class="mna-btn" type="button">Back to sign in</button></div>';
+      body.innerHTML='<div class="mna-success"><h3>Check your email</h3><p>If a MOVA account exists for <b>'+esc(email)+'</b>, a password reset link will be sent to that address.</p><p class="mna-reset-note">This preview currently uses browser-local accounts, so real email delivery will be connected when the server-backed authentication service is enabled.</p><button id="mnaResetDone" class="mna-btn" type="button">Back to sign in</button></div>';
       document.getElementById('mnaResetDone').onclick=function(){if(typeof window.movaNARenderAuth==='function')window.movaNARenderAuth('signin')};
     };
   }
@@ -59,4 +46,4 @@ const runtime=`<script id="mova-forgot-password-runtime">(function(){
 html=html.replace('</body>',runtime+'</body>');
 
 writeFileSync(file,html);
-console.log('MOVA Forgot Password flow added.');
+console.log('MOVA Forgot Password changed to email-only reset request flow.');
