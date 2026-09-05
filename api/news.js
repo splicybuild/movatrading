@@ -1,4 +1,4 @@
-// MOVA News image resolver v2 — prefer article-specific imagery before any generic fallback.
+// MOVA News image resolver v3 — prefer article-specific imagery and prevent duplicate thumbnails.
 function norm(h){return String(h||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();}
 function unique(items){const seen=new Set();return items.filter(x=>{const n=norm(x.title||x.headline),key=n.split(" ").slice(0,13).join(" ");if(!key||seen.has(key))return false;seen.add(key);return true;});}
 function decodeXml(s){return String(s||"").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'");}
@@ -7,6 +7,7 @@ function attrTag(block,name,attr){const m=block.match(new RegExp(`<${name}[^>]*\
 function htmlImage(s){const m=String(s||"").match(/<img[^>]+src=["']([^"']+)["']/i);return m?decodeXml(m[1]).trim():"";}
 function stripHtml(s){return decodeXml(String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ")).trim();}
 function absolutize(url,base){try{return new URL(url,base).href}catch{return url||""}}
+function canonicalImage(url){try{const u=new URL(url);return (u.origin+u.pathname).toLowerCase()}catch{return String(url||"").split('?')[0].toLowerCase()}}
 function usableImage(url){if(!url)return false;const s=String(url).toLowerCase();return !(/logo|icon|avatar|sprite|pixel|tracking|favicon/.test(s));}
 async function resolveArticle(url){
   if(!url)return {url:"",image:""};
@@ -38,7 +39,13 @@ const FALLBACK_IMAGES=[
  "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=900&q=80",
  "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=900&q=80",
  "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=900&q=80",
- "https://images.unsplash.com/photo-1569025690938-a00729c9e1f9?auto=format&fit=crop&w=900&q=80"
+ "https://images.unsplash.com/photo-1569025690938-a00729c9e1f9?auto=format&fit=crop&w=900&q=80",
+ "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?auto=format&fit=crop&w=900&q=80",
+ "https://images.unsplash.com/photo-1642790106117-e829e14a795f?auto=format&fit=crop&w=900&q=80",
+ "https://images.unsplash.com/photo-1624996379697-f01d168b1a52?auto=format&fit=crop&w=900&q=80",
+ "https://images.unsplash.com/photo-1535320903710-d993d3d77d29?auto=format&fit=crop&w=900&q=80",
+ "https://images.unsplash.com/photo-1579226905180-636b76d96082?auto=format&fit=crop&w=900&q=80",
+ "https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?auto=format&fit=crop&w=900&q=80"
 ];
 async function bingMarketNews(){
   const queries=["US stock market","Nasdaq technology stocks","oil markets","gold markets","Federal Reserve markets"];
@@ -57,7 +64,24 @@ async function bingMarketNews(){
     }catch{}
   }
   const items=unique(all).sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0)).slice(0,20);
-  return Promise.all(items.map(async(item,i)=>{if(usableImage(item.image))return item;const r=await resolveArticle(item.url);return {...item,url:r.url||item.url,image:r.image||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length]}}));
+  const used=new Set();
+  const output=[];
+  for(let i=0;i<items.length;i++){
+    const item=items[i];
+    let image=usableImage(item.image)?item.image:"";
+    let resolvedUrl=item.url;
+    if(!image||used.has(canonicalImage(image))){
+      const r=await resolveArticle(item.url);
+      resolvedUrl=r.url||item.url;
+      if(r.image&&!used.has(canonicalImage(r.image)))image=r.image;
+    }
+    if(!image||used.has(canonicalImage(image))){
+      image=FALLBACK_IMAGES.find(x=>!used.has(canonicalImage(x)))||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length];
+    }
+    used.add(canonicalImage(image));
+    output.push({...item,url:resolvedUrl,image});
+  }
+  return output;
 }
 export default{async fetch(request){
   if(request.method!=="GET")return Response.json({error:"Method not allowed"},{status:405});
