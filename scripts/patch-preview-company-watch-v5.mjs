@@ -75,6 +75,16 @@ const css=`<style id="mova-preview-company-watch-v5-style">
 #companyResearchView button[data-mova-canonical-watch="1"]{background:rgba(79,255,52,.11)!important;color:#9cff72!important;border-color:#2e8d25!important}
 body.mova-light-theme #companyResearchView button[data-mova-canonical-watch="0"]{background:#eef4f7!important;color:#294351!important;border-color:#aac1cc!important}
 body.mova-light-theme #companyResearchView button[data-mova-canonical-watch="1"]{background:#e9f8e8!important;color:#237a2b!important;border-color:#79bd72!important}
+
+/* Canonical Watchlist keeps the native ticker feel: seamless marquee + clickable cards. */
+.mova-canonical-watch-strip{display:block!important;width:100%!important;overflow:hidden!important;overflow-x:hidden!important;padding:8px 0 7px!important;box-sizing:border-box!important;position:relative!important;scrollbar-width:none!important}
+.mova-canonical-watch-strip::-webkit-scrollbar{display:none!important}
+.mova-canonical-watch-track{display:flex!important;width:max-content!important;max-width:none!important;align-items:stretch!important;will-change:transform!important;animation:movaCanonicalWatchMarquee var(--mova-watch-duration,28s) linear infinite!important;transform:translate3d(0,0,0)}
+.mova-canonical-watch-group{display:flex!important;flex:0 0 auto!important;gap:8px!important;align-items:stretch!important;padding-right:8px!important;box-sizing:border-box!important}
+.mova-canonical-watch-strip:hover .mova-canonical-watch-track,.mova-canonical-watch-strip:focus-within .mova-canonical-watch-track{animation-play-state:paused!important}
+.mova-canonical-watch-card{pointer-events:auto!important;touch-action:manipulation!important;user-select:none!important}
+@keyframes movaCanonicalWatchMarquee{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--mova-watch-shift,-900px),0,0)}}
+@media(prefers-reduced-motion:reduce){.mova-canonical-watch-track{animation:none!important;transform:none!important}}
 </style>`;
 
 const runtime=`<script id="mova-preview-company-watch-v5">(function(){
@@ -117,7 +127,54 @@ const guard=`<script id="mova-preview-watch-native-guard-v6">(function(){
   setInterval(queue,1200);
 })();</script>`;
 
+const marquee=`<script id="mova-preview-watch-marquee-v7">(function(){
+  var queued=false;
+  function sym(v){v=String(v||'').trim().toUpperCase();return /^[A-Z0-9.\\-]{1,16}$/.test(v)?v:''}
+  function makeClone(group){var c=group.cloneNode(true);c.setAttribute('aria-hidden','true');c.querySelectorAll('button').forEach(function(b){b.tabIndex=-1;b.onclick=null});return c}
+  function size(strip,track,group){
+    requestAnimationFrame(function(){
+      if(!strip.isConnected||!track.isConnected||!group.isConnected)return;
+      var width=Math.ceil(group.getBoundingClientRect().width);if(width<1)return;
+      var needed=Math.max(2,Math.ceil(strip.clientWidth/width)+2);
+      while(track.children.length<needed)track.appendChild(makeClone(group));
+      while(track.children.length>needed)track.lastElementChild.remove();
+      track.style.setProperty('--mova-watch-shift','-'+width+'px');
+      track.style.setProperty('--mova-watch-duration',Math.max(18,Math.min(44,width/32)).toFixed(1)+'s');
+    });
+  }
+  function enhance(strip){
+    var track=strip.querySelector(':scope > .mova-canonical-watch-track');
+    if(track){var g=track.querySelector(':scope > .mova-canonical-watch-group');if(g)size(strip,track,g);return}
+    var cards=Array.from(strip.children).filter(function(el){return el.classList&&el.classList.contains('mova-canonical-watch-card')});
+    if(!cards.length)return;
+    var group=document.createElement('div');group.className='mova-canonical-watch-group';
+    cards.forEach(function(b){b.onclick=null;group.appendChild(b)});
+    track=document.createElement('div');track.className='mova-canonical-watch-track';track.appendChild(group);track.appendChild(makeClone(group));
+    strip.innerHTML='';strip.appendChild(track);size(strip,track,group);
+  }
+  function apply(){queued=false;document.querySelectorAll('[data-mova-canonical-watch-strip="1"]').forEach(enhance)}
+  function queue(){if(queued)return;queued=true;requestAnimationFrame(apply)}
+  function openCompany(symbol){
+    symbol=sym(symbol);if(!symbol)return;
+    try{sessionStorage.setItem('movaCurrentCompanyV1',symbol)}catch(e){}
+    try{
+      if(typeof window.openCompanyResearch==='function'){window.openCompanyResearch(symbol);return}
+    }catch(e){}
+    try{location.hash='#company='+encodeURIComponent(symbol)}catch(e){}
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('.mova-canonical-watch-card[data-mova-watch-open]');
+    if(!b||!b.closest('[data-mova-canonical-watch-strip="1"]'))return;
+    e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+    openCompany(b.dataset.movaWatchOpen);
+  },true);
+  new MutationObserver(queue).observe(document.body,{subtree:true,childList:true});
+  window.addEventListener('load',queue);window.addEventListener('resize',queue);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',queue);else queue();
+  [80,250,700,1500].forEach(function(ms){setTimeout(queue,ms)});
+})();</script>`;
+
 html=html.replace('</head>',css+'</head>');
-html=html.replace('</body>',runtime+guard+'</body>');
+html=html.replace('</body>',runtime+guard+marquee+'</body>');
 writeFileSync(file,html);
-console.log('MOVA v6: account-scoped Watch List with strict native ticker suppression.');
+console.log('MOVA v7: account-scoped Watch List + strict native suppression + scrolling clickable canonical ticker.');
