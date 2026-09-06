@@ -8,6 +8,17 @@ body.mova-light-theme .mova-news-context{background:#fff;border-color:#c8d7df}.m
 </style>`;
 html=html.replace('</head>',css+'</head>');
 
-// Styling only. Runtime deliberately disabled: patch-news-top10-hardfix.mjs is the sole News Top 10 controller.
+// Load the default Top 10 market stories once the final News controller has been installed.
+const js=`<script id="mova-news-default-market-v1">(function(){
+  function loadDefaultMarketNews(){
+    setTimeout(function(){
+      try{if(typeof window.movaShowMarketNews==='function')window.movaShowMarketNews()}catch(e){}
+    },0);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDefaultMarketNews,{once:true});
+  else loadDefaultMarketNews();
+})();</script>`;
+html=html.replace('</body>',js+'</body>');
+
 writeFileSync(file,html);
-console.log('MOVA older News Top 10 runtime disabled; styles retained.');
+console.log('MOVA News: styles retained and Top 10 market stories auto-load by default.');
