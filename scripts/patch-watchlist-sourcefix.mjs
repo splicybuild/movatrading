@@ -2,9 +2,10 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
-const runtime=`<script id="mova-watchlist-sourcefix-v7">(function(){
+const runtime=`<script id="mova-watchlist-sourcefix-v8">(function(){
   const LEGACY_KEY='movaUnifiedWatchlistV1';
   const CANON_KEY='movaUnifiedWatchlistV2';
+  const MODE_KEY='movaTickerModeV1';
   let seeded=false,lastSig='';
   function assetsList(){try{return Array.isArray(assets)?assets:[]}catch(e){return[]}}
   function sym(v){v=String(v||'').trim().toUpperCase();return /^[A-Z0-9.\-]{1,12}$/.test(v)?v:''}
@@ -21,16 +22,37 @@ const runtime=`<script id="mova-watchlist-sourcefix-v7">(function(){
   function fill(){const sel=homeSelect();if(!sel)return;const list=watched(),a=assetsList(),cur=String(sel.value||'').toUpperCase(),sig=list.slice().sort().join('|');if(sig===sel.dataset.movaWatchSig)return;sel.dataset.movaWatchSig=sig;sel.innerHTML='';const p=document.createElement('option');p.value='';p.textContent=list.length?'Select a watched market':'No watched markets yet';sel.appendChild(p);list.forEach(s=>{const x=a.find(q=>String(q.k||'').toUpperCase()===s),o=document.createElement('option');o.value=s;o.textContent=(x&&x.n?x.n:s)+' · '+s;sel.appendChild(o)});if(list.includes(cur))sel.value=cur}
   function nav(){const side=document.querySelector('#movaNativeAccount .mna-side');if(!side)return;const alerts=side.querySelector('[data-mna="alerts"]');if(!alerts)return;let b=side.querySelector('[data-mna="watchlist"]');if(!b){b=document.createElement('button');b.className='mna-nav';b.dataset.mna='watchlist';b.textContent='Watch List';side.insertBefore(b,alerts)}b.onclick=render}
   function render(){const c=document.getElementById('mnaCanvas');if(!c)return;document.querySelectorAll('#movaNativeAccount [data-mna]').forEach(b=>b.classList.toggle('active',b.dataset.mna==='watchlist'));const list=watched(),a=assetsList(),rows=list.map(s=>{const x=a.find(q=>String(q.k||'').toUpperCase()===s);return '<div class="mova-watch-account-row"><div><b>'+s+'</b><small>'+String(x&&x.n||'Watched market')+'</small></div><button type="button" class="mova-watch-account-open" data-watch-open="'+s+'">Open</button></div>'}).join('');c.innerHTML='<span class="mna-kicker">WATCH LIST</span><h1>Your Watch List</h1><p class="mna-copy">Markets currently marked as Watching in MOVA.</p><div class="mova-watch-account-list">'+(rows||'<div class="mova-watch-empty">You are not watching any markets right now.</div>')+'</div>';c.querySelectorAll('[data-watch-open]').forEach(b=>b.onclick=()=>{const s=b.dataset.watchOpen;try{movaNACloseWorkspace()}catch(e){};try{if(typeof openAsset==='function')openAsset(s);else openCompanyResearch(s)}catch(e){}})}
-  function tickerRoot(){const b=[...document.querySelectorAll('button')].find(x=>/^Watchlist$/i.test((x.textContent||'').trim())&&x.offsetParent!==null);if(!b)return null;let best=b.parentElement;for(let p=b.parentElement,i=0;p&&p!==document.body&&i<7;p=p.parentElement,i++){const r=p.getBoundingClientRect(),t=(p.innerText||'');if(/Trending/i.test(t)&&/Watchlist/i.test(t)&&r.height>35&&r.height<220&&r.width>window.innerWidth*.55)best=p}return {root:best,button:b}}
+  function tickerRoot(){const buttons=[...document.querySelectorAll('button')].filter(x=>/^(Watchlist|Trending)$/i.test((x.textContent||'').trim())&&x.offsetParent!==null);const b=buttons.find(x=>/^Watchlist$/i.test((x.textContent||'').trim()));if(!b)return null;let best=b.parentElement;for(let p=b.parentElement,i=0;p&&p!==document.body&&i<7;p=p.parentElement,i++){const r=p.getBoundingClientRect(),t=(p.innerText||'');if(/Trending/i.test(t)&&/Watchlist/i.test(t)&&r.height>35&&r.height<240&&r.width>window.innerWidth*.5)best=p}return {root:best,button:b,trending:buttons.find(x=>/^Trending$/i.test((x.textContent||'').trim()))||null}}
+  function rgbScore(v){const m=String(v||'').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);return m?(+m[1])+(+m[2])+(+m[3]):0}
+  function selectedByMarkup(b){if(!b)return false;const cls=' '+String(b.className||'')+' ';if(/\b(active|selected|current|on|is-active|is-selected)\b/i.test(cls))return true;return b.getAttribute('aria-selected')==='true'||b.getAttribute('aria-pressed')==='true'||b.dataset.active==='true'||b.dataset.selected==='true'}
+  function watchMode(hit){
+    try{const saved=sessionStorage.getItem(MODE_KEY);if(saved==='watchlist'||saved==='trending')return saved==='watchlist'}catch(e){}
+    if(selectedByMarkup(hit.button))return true;
+    if(selectedByMarkup(hit.trending))return false;
+    try{
+      const wb=getComputedStyle(hit.button),tb=hit.trending?getComputedStyle(hit.trending):null;
+      const w=rgbScore(wb.backgroundColor)+rgbScore(wb.borderColor)*.25;
+      const t=tb?rgbScore(tb.backgroundColor)+rgbScore(tb.borderColor)*.25:0;
+      if(Math.abs(w-t)>18)return w>t;
+    }catch(e){}
+    return false;
+  }
   function cardSymbol(el){const t=' '+String(el.innerText||'').toUpperCase().replace(/[^A-Z0-9.\-$% ]/g,' ')+' ';const known=assetsList().map(a=>String(a.k||'').toUpperCase()).filter(Boolean);return known.find(s=>t.includes(' '+s+' '))||''}
-  function syncTopTicker(){const hit=tickerRoot();if(!hit)return;const {root,button}=hit,list=watched(),active=button.classList.contains('active')||button.getAttribute('aria-selected')==='true'||button.getAttribute('aria-pressed')==='true';root.querySelectorAll('[data-mova-watch-hidden="1"]').forEach(el=>{el.style.display=el.dataset.movaWatchPrevDisplay||'';delete el.dataset.movaWatchHidden;delete el.dataset.movaWatchPrevDisplay});if(!active)return;const candidates=[...root.querySelectorAll('div,button,a')].filter(el=>{if(el===button)return false;const r=el.getBoundingClientRect(),t=el.innerText||'';if(!/\$\s*[0-9]/.test(t)||r.height<28||r.height>110||r.width<70||r.width>420)return false;const childPrice=[...el.children].some(c=>/\$\s*[0-9]/.test(c.innerText||''));return !childPrice});candidates.forEach(el=>{const s=cardSymbol(el),show=s&&list.includes(s);if(!show){el.dataset.movaWatchPrevDisplay=el.style.display||'';el.dataset.movaWatchHidden='1';el.style.display='none'}});const status=[...root.querySelectorAll('span,small,div')].find(el=>/^\s*\d+\s+saved\b/i.test((el.textContent||'').trim()));if(status)status.textContent=list.length+' saved · your actual Watchlist'}
+  function syncTopTicker(){
+    const hit=tickerRoot();if(!hit)return;const {root}=hit,list=watched(),active=watchMode(hit);
+    root.querySelectorAll('[data-mova-watch-hidden="1"]').forEach(el=>{el.style.display=el.dataset.movaWatchPrevDisplay||'';delete el.dataset.movaWatchHidden;delete el.dataset.movaWatchPrevDisplay});
+    if(!active)return;
+    const candidates=[...root.querySelectorAll('div,button,a')].filter(el=>{if(el===hit.button||el===hit.trending)return false;const r=el.getBoundingClientRect(),t=el.innerText||'';if(!/\$\s*[0-9]/.test(t)||r.height<24||r.height>120||r.width<60||r.width>460)return false;const childPrice=[...el.children].some(c=>/\$\s*[0-9]/.test(c.innerText||''));return !childPrice});
+    candidates.forEach(el=>{const s=cardSymbol(el),show=s&&list.includes(s);if(!show){el.dataset.movaWatchPrevDisplay=el.style.display||'';el.dataset.movaWatchHidden='1';el.style.display='none'}});
+    const status=[...root.querySelectorAll('span,small,div')].find(el=>/^\s*\d+\s+saved\b/i.test((el.textContent||'').trim()));if(status)status.textContent=list.length+' saved · your actual Watchlist';
+  }
   function refresh(force=false){seed();const sig=watched().slice().sort().join('|');if(force||sig!==lastSig){lastSig=sig;fill();if(document.querySelector('#movaNativeAccount [data-mna="watchlist"].active'))render()}else fill();nav();syncTopTicker()}
-  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;const t=(b.textContent||'').trim();if(/Watching|Add to Watchlist|Remove from Watchlist/i.test(t)){const s=currentSymbol();if(s){const remove=/^\s*★?\s*Watching\s*$/i.test(t)||/Remove from Watchlist/i.test(t);const add=/Add to Watchlist/i.test(t);if(remove||add)applyIntent(s,add)}}if(/^Watchlist$|^Trending$/i.test(t)){setTimeout(()=>syncTopTicker(),40);setTimeout(()=>syncTopTicker(),180);setTimeout(()=>syncTopTicker(),500)}},true);
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;const t=(b.textContent||'').trim();if(/Watching|Add to Watchlist|Remove from Watchlist/i.test(t)){const s=currentSymbol();if(s){const remove=/^\s*★?\s*Watching\s*$/i.test(t)||/Remove from Watchlist/i.test(t);const add=/Add to Watchlist/i.test(t);if(remove||add)applyIntent(s,add)}}if(/^Watchlist$/i.test(t)){try{sessionStorage.setItem(MODE_KEY,'watchlist')}catch(e){};setTimeout(()=>syncTopTicker(),20);setTimeout(()=>syncTopTicker(),150);setTimeout(()=>syncTopTicker(),500)}if(/^Trending$/i.test(t)){try{sessionStorage.setItem(MODE_KEY,'trending')}catch(e){};setTimeout(()=>syncTopTicker(),20);setTimeout(()=>syncTopTicker(),150)}},true);
   window.addEventListener('storage',e=>{if(e.key===CANON_KEY)refresh(true)});
   const mo=new MutationObserver(()=>refresh(false));
-  function boot(){try{localStorage.removeItem(LEGACY_KEY)}catch(e){};seed();refresh(true);mo.observe(document.body,{subtree:true,childList:true});[300,800,1600,3000].forEach(ms=>setTimeout(()=>refresh(true),ms))}
+  function boot(){try{localStorage.removeItem(LEGACY_KEY)}catch(e){};seed();refresh(true);mo.observe(document.body,{subtree:true,childList:true});[250,700,1500,3000].forEach(ms=>setTimeout(()=>refresh(true),ms))}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();</script>`;
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA watchlist sourcefix v7: click intent updates canonical Watch List directly.');
+console.log('MOVA watchlist sourcefix v8: top Watchlist ticker forced to canonical state.');
