@@ -66,9 +66,14 @@ body.mova-light-theme #crBusinessMix .cr-fact span{
   color:#afc4d3!important;
 }
 
-/* Business/history copy that sits inside the dark Company Research treatment. */
+/* Overview copy sits on white cards in Light theme, so it needs dark text. */
 body.mova-light-theme #crWho,
-body.mova-light-theme #crWhat,
+body.mova-light-theme #crWhat{
+  color:#43515d!important;
+  opacity:1!important;
+}
+
+/* Company History remains in the intentionally dark treatment. */
 body.mova-light-theme #crHistorySummary{
   color:#d9e6ef!important;
 }
@@ -94,4 +99,4 @@ body.mova-light-theme #crMove.down{color:#ff6b81!important}
 
 html=html.replace('</head>',css+'</head>');
 writeFileSync(file,html);
-console.log('MOVA company light-theme contrast v3 applied: bright text on dark Company Research panels.');
+console.log('MOVA company light-theme contrast v3 applied: readable dark overview copy plus bright text on dark Company Research panels.');
