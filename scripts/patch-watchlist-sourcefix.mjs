@@ -3,14 +3,19 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
-// Fix the native MOVA Watch List empty-state bug at source.
-// Previously an explicitly saved [] was treated as "no saved value" and
-// DEFAULT_WATCHLIST was restored. An empty array must remain a valid Watch List.
-const oldFn="function getWatchlist(){try{const v=JSON.parse(wlGet(MOVA_WATCHLIST_KEY)||'null');if(Array.isArray(v)&&v.length)return [...new Set(v.map(x=>String(x).toUpperCase()))].slice(0,20)}catch(_){}return [...DEFAULT_WATCHLIST]}";
-const newFn="function getWatchlist(){try{const v=JSON.parse(wlGet(MOVA_WATCHLIST_KEY)||'null');if(Array.isArray(v))return [...new Set(v.map(x=>String(x).toUpperCase()))].slice(0,20)}catch(_){}return [...DEFAULT_WATCHLIST]}";
+// Keep the native MOVA Watch List as the source of truth.
+// 1) An explicitly saved [] must stay empty instead of restoring defaults.
+// 2) Mirror every native read/save into the Profile Watch List keys so the
+//    Account view can never retain stale symbols after Home/ticker are empty.
+const oldGet="function getWatchlist(){try{const v=JSON.parse(wlGet(MOVA_WATCHLIST_KEY)||'null');if(Array.isArray(v)&&v.length)return [...new Set(v.map(x=>String(x).toUpperCase()))].slice(0,20)}catch(_){}return [...DEFAULT_WATCHLIST]}";
+const newGet="function movaSyncUnifiedWatchlist(x){try{wlSet('movaUnifiedWatchlistV2',JSON.stringify(x));wlSet('movaUnifiedWatchlistV1',JSON.stringify(x));wlSet('movaUnifiedWatchlistV2Initialised','1')}catch(_){}return x}function getWatchlist(){try{const v=JSON.parse(wlGet(MOVA_WATCHLIST_KEY)||'null');if(Array.isArray(v)){const x=[...new Set(v.map(x=>String(x).toUpperCase()))].slice(0,20);return movaSyncUnifiedWatchlist(x)}}catch(_){}return movaSyncUnifiedWatchlist([...DEFAULT_WATCHLIST])}";
 
-if(!html.includes(oldFn))throw new Error('Watch List native getWatchlist() source not found');
-html=html.replace(oldFn,newFn);
+const oldSave="function saveWatchlist(v){const x=[...new Set(v.map(s=>String(s).toUpperCase()))].slice(0,20);wlSet(MOVA_WATCHLIST_KEY,JSON.stringify(x));return x}";
+const newSave="function saveWatchlist(v){const x=[...new Set(v.map(s=>String(s).toUpperCase()))].slice(0,20);wlSet(MOVA_WATCHLIST_KEY,JSON.stringify(x));return movaSyncUnifiedWatchlist(x)}";
+
+if(!html.includes(oldGet))throw new Error('Watch List native getWatchlist() source not found');
+if(!html.includes(oldSave))throw new Error('Watch List native saveWatchlist() source not found');
+html=html.replace(oldGet,newGet).replace(oldSave,newSave);
 
 writeFileSync(file,html);
-console.log('MOVA Watch List: explicit empty saved list now remains empty.');
+console.log('MOVA Watch List: native empty state preserved and Profile keys kept in sync.');
