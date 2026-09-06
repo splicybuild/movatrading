@@ -1,0 +1,23 @@
+import { readFileSync } from 'node:fs';
+
+const html=readFileSync('dist/index.html','utf8');
+
+function must(label,condition){
+  if(!condition)throw new Error(`MOVA runtime self-test failed: ${label}`);
+  console.log('PASS:',label);
+}
+
+const start=html.indexOf('<script id="mova-preview-followup-fixes-v1">');
+const end=start>=0?html.indexOf('</script>',start):-1;
+must('final follow-up runtime exists',start>=0&&end>start);
+const openEnd=html.indexOf('>',start);
+const js=html.slice(openEnd+1,end);
+new Function(js);
+console.log('PASS: final follow-up runtime parses as JavaScript');
+
+must('legacy News controller removed',!html.includes('id="mova-news-top10-hardfix-v5"'));
+must('legacy Watch List controller removed',!html.includes('id="mova-watchlist-sourcefix-v8"'));
+must('Account nav has Watch List between Investments and Alerts',html.includes('data-mna="investments">Investments</button><button class="mna-nav" data-mna="watchlist">Watch List</button><button class="mna-nav" data-mna="alerts">Alerts</button>'));
+must('live scan has directional class',html.includes('<small class="\'+cls+\'">'));
+must('News Top 10 final handler exists',html.includes('window.movaNewsTop10Search'));
+must('Watch List final refresh exists',html.includes('window.movaWatchlistRefresh'));
