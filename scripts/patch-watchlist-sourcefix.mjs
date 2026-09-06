@@ -2,13 +2,15 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
-const runtime=`<script id="mova-watchlist-sourcefix-v2">(function(){
+const runtime=`<script id="mova-watchlist-sourcefix-v3">(function(){
   const LEGACY_KEY='movaUnifiedWatchlistV1';
   function assetsList(){try{return Array.isArray(assets)?assets:[]}catch(e){return[]}}
   function knownSet(){return new Set(assetsList().map(a=>String(a.k||'').toUpperCase()).filter(Boolean))}
   function sym(v){v=String(v||'').trim().toUpperCase();return /^[A-Z0-9.\-]{1,12}$/.test(v)?v:''}
   function stateFrom(value,out){
     if(value==null)return;
+    if(value instanceof Set){value.forEach(v=>stateFrom(v,out));return}
+    if(value instanceof Map){value.forEach((v,k)=>{const s=sym(k);if(s)out.set(s,!!v)});return}
     if(Array.isArray(value)){value.forEach(v=>stateFrom(v,out));return}
     if(typeof value==='string'){const s=sym(value);if(s)out.set(s,true);return}
     if(typeof value!=='object')return;
@@ -27,15 +29,26 @@ const runtime=`<script id="mova-watchlist-sourcefix-v2">(function(){
   function parse(raw){const out=new Map();if(!raw)return out;try{stateFrom(JSON.parse(raw),out)}catch(e){stateFrom(raw,out)}return out}
   function candidateSources(){
     const known=knownSet(),arr=[];
-    function push(name,map,bonus){const active=[...map.entries()].filter(([s,on])=>on&&(!known.size||known.has(s))).map(([s])=>s);const negatives=[...map.entries()].filter(([s,on])=>!on&&(!known.size||known.has(s))).length;if(active.length||negatives)arr.push({name,active,score:active.length*10+negatives*2+(bonus||0)})}
-    try{if(typeof watchlist!=='undefined'){const m=new Map();stateFrom(watchlist,m);push('global:watchlist',m,80)}}catch(e){}
-    try{if(typeof watchList!=='undefined'){const m=new Map();stateFrom(watchList,m);push('global:watchList',m,80)}}catch(e){}
-    try{if(typeof watchedAssets!=='undefined'){const m=new Map();stateFrom(watchedAssets,m);push('global:watchedAssets',m,70)}}catch(e){}
+    function push(name,map,bonus){
+      const active=[...map.entries()].filter(([s,on])=>on&&(!known.size||known.has(s))).map(([s])=>s);
+      const negatives=[...map.entries()].filter(([s,on])=>!on&&(!known.size||known.has(s))).length;
+      if(active.length||negatives)arr.push({name,active,score:active.length*100+negatives*5+(bonus||0)});
+    }
+    try{if(typeof watchlist!=='undefined'){const m=new Map();stateFrom(watchlist,m);push('global:watchlist',m,300)}}catch(e){}
+    try{if(typeof watchList!=='undefined'){const m=new Map();stateFrom(watchList,m);push('global:watchList',m,300)}}catch(e){}
+    try{if(typeof watchedAssets!=='undefined'){const m=new Map();stateFrom(watchedAssets,m);push('global:watchedAssets',m,260)}}catch(e){}
+    try{
+      Object.keys(window).filter(k=>/watch|follow|fav/i.test(k)).forEach(k=>{
+        try{const v=window[k];if(typeof v==='function')return;const m=new Map();stateFrom(v,m);push('window:'+k,m,220)}catch(e){}
+      });
+    }catch(e){}
     try{
       for(let i=0;i<localStorage.length;i++){
-        const k=localStorage.key(i)||'';if(k===LEGACY_KEY)continue;if(!/watch|fav|follow|track/i.test(k))continue;
+        const k=localStorage.key(i)||'';
+        if(k===LEGACY_KEY||/alert|setting|pref|notification/i.test(k))continue;
+        if(!/watch|fav|follow|track/i.test(k))continue;
         const m=parse(localStorage.getItem(k));
-        let bonus=0;if(/mova/i.test(k))bonus+=20;if(/watchlist/i.test(k))bonus+=25;else if(/watch/i.test(k))bonus+=15;
+        let bonus=0;if(/mova/i.test(k))bonus+=60;if(/watchlist/i.test(k))bonus+=100;else if(/watch/i.test(k))bonus+=60;
         push('storage:'+k,m,bonus);
       }
     }catch(e){}
@@ -52,11 +65,11 @@ const runtime=`<script id="mova-watchlist-sourcefix-v2">(function(){
   function render(){
     const c=document.getElementById('mnaCanvas');if(!c)return;document.querySelectorAll('#movaNativeAccount [data-mna]').forEach(b=>b.classList.toggle('active',b.dataset.mna==='watchlist'));
     const list=watched(),a=assetsList();const rows=list.map(s=>{const x=a.find(q=>String(q.k||'').toUpperCase()===s);return '<div class="mova-watch-account-row"><div><b>'+s+'</b><small>'+String(x&&x.n||'Watched market')+'</small></div><button type="button" class="mova-watch-account-open" data-watch-open="'+s+'">Open</button></div>'}).join('');
-    c.innerHTML='<span class="mna-kicker">WATCH LIST</span><h1>Your Watch List</h1><p class="mna-copy">This uses MOVA\'s actual current Watching state.</p><div class="mova-watch-account-list">'+(rows||'<div class="mova-watch-empty">You are not watching any markets right now.</div>')+'</div>';
+    c.innerHTML='<span class="mna-kicker">WATCH LIST</span><h1>Your Watch List</h1><p class="mna-copy">Markets currently marked as Watching in MOVA.</p><div class="mova-watch-account-list">'+(rows||'<div class="mova-watch-empty">You are not watching any markets right now.</div>')+'</div>';
     c.querySelectorAll('[data-watch-open]').forEach(b=>b.onclick=()=>{const s=b.dataset.watchOpen;try{if(typeof movaNACloseWorkspace==='function')movaNACloseWorkspace()}catch(e){};try{if(typeof openAsset==='function')openAsset(s);else if(typeof openCompanyResearch==='function')openCompanyResearch(s)}catch(e){}})
   }
   function refresh(){try{localStorage.removeItem(LEGACY_KEY)}catch(e){};nav();fill();if(document.querySelector('#movaNativeAccount [data-mna="watchlist"].active'))render()}
-  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;const t=(b.textContent||'').trim();if(/Watching|Add to Watchlist|Remove from Watchlist|Watchlist/i.test(t))setTimeout(refresh,120)},true);
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;const t=(b.textContent||'').trim();if(/Watching|Add to Watchlist|Remove from Watchlist|Watchlist/i.test(t))setTimeout(refresh,140)},true);
   window.addEventListener('storage',e=>{if(/watch|fav|follow|track/i.test(e.key||''))refresh()});
   const mo=new MutationObserver(()=>nav());
   function boot(){try{localStorage.removeItem(LEGACY_KEY)}catch(e){};refresh();mo.observe(document.body,{subtree:true,childList:true});setTimeout(refresh,350);setTimeout(refresh,1100)}
@@ -64,4 +77,4 @@ const runtime=`<script id="mova-watchlist-sourcefix-v2">(function(){
 })();</script>`;
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA watchlist sourcefix v2: native source of truth, stale legacy cache removed.');
+console.log('MOVA watchlist sourcefix v3: prefer multi-symbol native source and ignore alert/settings state.');
