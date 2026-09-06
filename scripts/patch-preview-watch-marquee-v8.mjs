@@ -37,7 +37,7 @@ const css=`<style id="mova-preview-watch-marquee-v8-style">
   max-width:none!important;
   will-change:transform!important;
   transform:translate3d(0,0,0);
-  animation:movaCanonicalWatchV8 var(--mova-watch-duration,28s) linear infinite!important;
+  animation:movaCanonicalWatchV8 52s linear infinite!important;
 }
 .mova-canonical-watch-group{
   display:flex!important;
@@ -54,8 +54,10 @@ const css=`<style id="mova-preview-watch-marquee-v8-style">
 .mova-canonical-watch-strip:hover .mova-canonical-watch-track,
 .mova-canonical-watch-strip:focus-within .mova-canonical-watch-track{animation-play-state:paused!important}
 .mova-canonical-watch-card{flex:0 0 154px!important;min-width:154px!important;max-width:154px!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:none!important}
-@keyframes movaCanonicalWatchV8{from{transform:translate3d(0,0,0)}to{transform:translate3d(var(--mova-watch-shift,-900px),0,0)}}
-@media(prefers-reduced-motion:reduce){.mova-canonical-watch-track{animation:none!important;transform:none!important}}
+@keyframes movaCanonicalWatchV8{
+  from{transform:translateX(0)}
+  to{transform:translateX(-50%)}
+}
 </style>`;
 
 const runtime=`<script id="mova-preview-watch-marquee-v8">(function(){
