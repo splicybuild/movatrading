@@ -72,7 +72,7 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
     btn.dataset.movaCanonicalWatch=on?'1':'0';
     btn.setAttribute('aria-pressed',on?'true':'false');
     btn.setAttribute('aria-label',(on?'Remove ':'Add ')+ticker+(on?' from':' to')+' Watch List');
-    var wanted=on?'★ Watching':'☆ Watch';
+    var wanted=on?'★ Watching':'☆ Add to Watchlist';
     if(String(btn.textContent||'').trim()!==wanted)btn.textContent=wanted;
   }
   function queue(){if(queued)return;queued=true;requestAnimationFrame(apply)}
@@ -107,4 +107,4 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA preview company watch v5 applied: all company watch label variants now follow canonical Watch List only.');
+console.log('MOVA preview company watch v5 applied: unsaved company buttons now say Add to Watchlist consistently.');
