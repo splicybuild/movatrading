@@ -203,23 +203,19 @@ function suppressNative(root,c,strip,empty){
 
   var first=document.querySelector('[data-mova-canonical-watch-strip="1"]');
   var empty=document.querySelector('[data-mova-watch-empty="1"]');
-  var anchor=first||empty;
-  var root=rootFor(c,anchor);
+  var root=rootFor(c,first||empty);
 
   if(!active(c)){
     restore(root);
     return;
   }
 
-  var list=readWatch();
   var strip=dedupe(root)||first;
 
-  if(!list.length){
+  if(empty){
     if(strip)strip.remove();
 
-    empty=document.querySelector('[data-mova-watch-empty="1"]')||empty;
     root=rootFor(c,empty)||root;
-
     suppressNative(root,c,null,empty);
     return;
   }
