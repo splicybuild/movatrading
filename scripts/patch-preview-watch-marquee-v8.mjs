@@ -56,7 +56,6 @@ const css=`<style id="mova-preview-watch-marquee-v8-style">
   from{transform:translate3d(0,0,0)}
   to{transform:translate3d(var(--mova-watch-shift,-500px),0,0)}
 }
-@media(prefers-reduced-motion:reduce){.mova-canonical-watch-track{animation:none!important;transform:none!important}}
 </style>`;
 
 const runtime=`<script id="mova-preview-watch-marquee-v8">(function(){
@@ -162,13 +161,13 @@ function suppressNative(root,c,strip,empty){
       var width=Math.ceil(group.getBoundingClientRect().width);if(width<1)return;
       var viewport=Math.ceil(strip.getBoundingClientRect().width);
       var copies=Math.max(2,Math.ceil((viewport+width)/width));
+      var sig=width+'|'+copies;
+      if(track.dataset.movaWatchLayout===sig)return;
+      track.dataset.movaWatchLayout=sig;
       while(track.children.length>1)track.lastElementChild.remove();
       for(var i=1;i<copies;i++)track.appendChild(cloneGroup(group));
       track.style.setProperty('--mova-watch-shift','-'+width+'px');
       track.style.setProperty('--mova-watch-duration',Math.max(14,Math.min(32,width/28)).toFixed(1)+'s');
-      track.style.setProperty('animation-name','none','important');
-      void track.offsetWidth;
-      track.style.setProperty('animation-name','movaCanonicalWatchV8','important');
     });
   }
   function enhance(strip){
@@ -275,4 +274,4 @@ function suppressNative(root,c,strip,empty){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA Watchlist marquee v8 applied: viewport-filling seamless loop, native tracks suppressed, cards clickable.');
+console.log('MOVA Watchlist marquee v8 applied: stable viewport-filling loop, native tracks suppressed, cards clickable.');
