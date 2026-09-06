@@ -205,25 +205,51 @@ function suppressNative(root,c,strip,empty){
   var empty=document.querySelector('[data-mova-watch-empty="1"]');
   var root=rootFor(c,first||empty);
 
+  var nativeTrack=document.getElementById('tickerTrack');
+  var tickerHost=nativeTrack&&nativeTrack.parentElement;
+
   if(!active(c)){
+    if(nativeTrack){
+      nativeTrack.style.removeProperty('display');
+      delete nativeTrack.dataset.movaWatchV8NativeHidden;
+    }
+
     restore(root);
     return;
   }
 
   var strip=dedupe(root)||first;
 
+  /*
+    Watchlist has its own canonical renderer.
+    Hide the ENTIRE original MOVA ticker track, not individual cards/groups.
+  */
+  if(nativeTrack){
+    nativeTrack.dataset.movaWatchV8NativeHidden='1';
+    nativeTrack.style.setProperty('display','none','important');
+  }
+
   if(empty){
     if(strip)strip.remove();
 
-    root=rootFor(c,empty)||root;
-    suppressNative(root,c,null,empty);
+    if(tickerHost&&empty.parentElement!==tickerHost){
+      tickerHost.appendChild(empty);
+    }
+
     return;
   }
 
   if(!strip)return;
 
+  /*
+    Move the canonical Watchlist OUT of #tickerTrack so hiding the
+    native ticker cannot hide the real Watchlist as well.
+  */
+  if(tickerHost&&strip.parentElement!==tickerHost){
+    tickerHost.appendChild(strip);
+  }
+
   enhance(strip);
-  suppressNative(root,c,strip,empty);
 }
   function queue(){if(queued)return;queued=true;requestAnimationFrame(apply)}
 
