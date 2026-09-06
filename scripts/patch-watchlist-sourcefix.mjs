@@ -2,62 +2,30 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const file='dist/index.html';
 let html=readFileSync(file,'utf8');
 
-const runtime=`<script id="mova-watchlist-sourcefix-v5">(function(){
+const runtime=`<script id="mova-watchlist-sourcefix-v6">(function(){
   const LEGACY_KEY='movaUnifiedWatchlistV1';
   const CANON_KEY='movaUnifiedWatchlistV2';
   let seeded=false,lastSig='';
   function assetsList(){try{return Array.isArray(assets)?assets:[]}catch(e){return[]}}
-  function knownSet(){return new Set(assetsList().map(a=>String(a.k||'').toUpperCase()).filter(Boolean))}
   function sym(v){v=String(v||'').trim().toUpperCase();return /^[A-Z0-9.\-]{1,12}$/.test(v)?v:''}
-  function stateFrom(value,out){
-    if(value==null)return;
-    if(value instanceof Set){value.forEach(v=>stateFrom(v,out));return}
-    if(value instanceof Map){value.forEach((v,k)=>{const s=sym(k);if(s)out.set(s,!!v)});return}
-    if(Array.isArray(value)){value.forEach(v=>stateFrom(v,out));return}
-    if(typeof value==='string'){const s=sym(value);if(s)out.set(s,true);return}
-    if(typeof value!=='object')return;
-    const direct=sym(value.symbol||value.ticker||value.k||value.code||'');
-    const explicit=value.watching??value.watched??value.inWatchlist??value.inWatchList??value.active??value.enabled??value.selected;
-    if(direct){
-      if(explicit===false||explicit===0||String(explicit).toLowerCase()==='false'||String(explicit).toLowerCase()==='removed')out.set(direct,false);
-      else out.set(direct,true);
-    }
-    Object.entries(value).forEach(([k,v])=>{
-      const s=sym(k);if(!s)return;
-      if(v===true||v===1||String(v).toLowerCase()==='watching'||String(v).toLowerCase()==='watched'||String(v).toLowerCase()==='active')out.set(s,true);
-      if(v===false||v===0||String(v).toLowerCase()==='false'||String(v).toLowerCase()==='removed')out.set(s,false);
-    });
-  }
+  function stateFrom(value,out){if(value==null)return;if(value instanceof Set){value.forEach(v=>stateFrom(v,out));return}if(value instanceof Map){value.forEach((v,k)=>{const s=sym(k);if(s)out.set(s,!!v)});return}if(Array.isArray(value)){value.forEach(v=>stateFrom(v,out));return}if(typeof value==='string'){const s=sym(value);if(s)out.set(s,true);return}if(typeof value!=='object')return;const direct=sym(value.symbol||value.ticker||value.k||value.code||'');const explicit=value.watching??value.watched??value.inWatchlist??value.inWatchList??value.active??value.enabled??value.selected;if(direct)out.set(direct,!(explicit===false||explicit===0||String(explicit).toLowerCase()==='false'||String(explicit).toLowerCase()==='removed'));Object.entries(value).forEach(([k,v])=>{const s=sym(k);if(!s)return;if(v===true||v===1||String(v).toLowerCase()==='watching'||String(v).toLowerCase()==='watched'||String(v).toLowerCase()==='active')out.set(s,true);if(v===false||v===0||String(v).toLowerCase()==='false'||String(v).toLowerCase()==='removed')out.set(s,false)})}
   function parse(raw){const out=new Map();if(!raw)return out;try{stateFrom(JSON.parse(raw),out)}catch(e){stateFrom(raw,out)}return out}
-  function discovered(){
-    const known=knownSet(),c=[];
-    function push(name,map,priority){const active=[...map.entries()].filter(([s,on])=>on&&(!known.size||known.has(s))).map(([s])=>s);c.push({name,active,priority})}
-    try{if(typeof watchlist!=='undefined'){const m=new Map();stateFrom(watchlist,m);push('watchlist',m,1000)}}catch(e){}
-    try{if(typeof watchList!=='undefined'){const m=new Map();stateFrom(watchList,m);push('watchList',m,1000)}}catch(e){}
-    try{if(typeof watchedAssets!=='undefined'){const m=new Map();stateFrom(watchedAssets,m);push('watchedAssets',m,950)}}catch(e){}
-    try{for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i)||'';if(k===LEGACY_KEY||k===CANON_KEY||/alert|setting|pref|notification/i.test(k)||!/watch|fav|follow|track/i.test(k))continue;
-      const m=parse(localStorage.getItem(k));let p=/watchlist/i.test(k)?850:/watch/i.test(k)?800:700;if(/mova/i.test(k))p+=50;push(k,m,p);
-    }}catch(e){}
-    c.sort((a,b)=>b.priority-a.priority||b.active.length-a.active.length);return c.length?c[0].active:[];
-  }
+  function discovered(){const known=new Set(assetsList().map(a=>String(a.k||'').toUpperCase()).filter(Boolean)),c=[];function push(map,p){const active=[...map.entries()].filter(([s,on])=>on&&(!known.size||known.has(s))).map(([s])=>s);c.push({active,p})}try{if(typeof watchlist!=='undefined'){const m=new Map();stateFrom(watchlist,m);push(m,1000)}}catch(e){}try{if(typeof watchList!=='undefined'){const m=new Map();stateFrom(watchList,m);push(m,1000)}}catch(e){}try{if(typeof watchedAssets!=='undefined'){const m=new Map();stateFrom(watchedAssets,m);push(m,950)}}catch(e){}try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';if(k===LEGACY_KEY||k===CANON_KEY||/alert|setting|pref|notification/i.test(k)||!/watch|fav|follow|track/i.test(k))continue;const m=parse(localStorage.getItem(k));let p=/watchlist/i.test(k)?850:/watch/i.test(k)?800:700;if(/mova/i.test(k))p+=50;push(m,p)}}catch(e){}c.sort((a,b)=>b.p-a.p||b.active.length-a.active.length);return c.length?c[0].active:[]}
   function readCanon(){try{const v=JSON.parse(localStorage.getItem(CANON_KEY)||'null');return Array.isArray(v)?v.map(sym).filter(Boolean):null}catch(e){return null}}
   function saveCanon(list){const clean=[...new Set((list||[]).map(sym).filter(Boolean))];try{localStorage.setItem(CANON_KEY,JSON.stringify(clean))}catch(e){};return clean}
-  function watched(){const c=readCanon();if(c!==null)return c;return discovered()}
-  function seed(){if(seeded)return;seeded=true;const c=readCanon();if(c===null)saveCanon(discovered())}
-  function currentSymbol(){const h=String(location.hash||'').match(/#company=([A-Z0-9.\-]+)/i);if(h)return h[1].toUpperCase();const e=document.getElementById('crEyebrow');const m=e&&String(e.textContent||'').match(/·\s*([A-Z0-9.\-]+)\s*$/i);return m?m[1].toUpperCase():''}
-  function syncFromButton(){
-    const s=currentSymbol();if(!s)return;
-    const visible=[...document.querySelectorAll('button')].find(b=>b.offsetParent!==null&&/Watching|Add to Watchlist|Remove from Watchlist/i.test((b.textContent||'').trim()));if(!visible)return;
-    const t=(visible.textContent||'').trim();const on=/Watching/i.test(t)&&!/Add to Watchlist|Remove from Watchlist/i.test(t);
-    let list=watched().filter(x=>x!==s);if(on)list.push(s);saveCanon(list);refresh(true);
-  }
+  function watched(){const c=readCanon();return c!==null?c:discovered()}
+  function seed(){if(seeded)return;seeded=true;if(readCanon()===null)saveCanon(discovered())}
+  function currentSymbol(){const h=String(location.hash||'').match(/#company=([A-Z0-9.\-]+)/i);if(h)return h[1].toUpperCase();const e=document.getElementById('crEyebrow'),m=e&&String(e.textContent||'').match(/·\s*([A-Z0-9.\-]+)\s*$/i);return m?m[1].toUpperCase():''}
+  function syncFromButton(){const s=currentSymbol();if(!s)return;const visible=[...document.querySelectorAll('button')].find(b=>b.offsetParent!==null&&/Watching|Add to Watchlist|Remove from Watchlist/i.test((b.textContent||'').trim()));if(!visible)return;const t=(visible.textContent||'').trim(),on=/Watching/i.test(t)&&!/Add to Watchlist|Remove from Watchlist/i.test(t);let list=watched().filter(x=>x!==s);if(on)list.push(s);saveCanon(list);refresh(true)}
   function homeSelect(){return [...document.querySelectorAll('select')].find(sel=>{let n=sel;for(let i=0;i<6&&n;i++,n=n.parentElement){if(/YOUR WATCHED STOCKS\s*&\s*MARKETS|WATCH LIST/i.test(n.textContent||''))return true}return false})||null}
   function fill(){const sel=homeSelect();if(!sel)return;const list=watched(),a=assetsList(),cur=String(sel.value||'').toUpperCase(),sig=list.slice().sort().join('|');if(sig===sel.dataset.movaWatchSig)return;sel.dataset.movaWatchSig=sig;sel.innerHTML='';const p=document.createElement('option');p.value='';p.textContent=list.length?'Select a watched market':'No watched markets yet';sel.appendChild(p);list.forEach(s=>{const x=a.find(q=>String(q.k||'').toUpperCase()===s),o=document.createElement('option');o.value=s;o.textContent=(x&&x.n?x.n:s)+' · '+s;sel.appendChild(o)});if(list.includes(cur))sel.value=cur}
   function nav(){const side=document.querySelector('#movaNativeAccount .mna-side');if(!side)return;const alerts=side.querySelector('[data-mna="alerts"]');if(!alerts)return;let b=side.querySelector('[data-mna="watchlist"]');if(!b){b=document.createElement('button');b.className='mna-nav';b.dataset.mna='watchlist';b.textContent='Watch List';side.insertBefore(b,alerts)}b.onclick=render}
-  function render(){const c=document.getElementById('mnaCanvas');if(!c)return;document.querySelectorAll('#movaNativeAccount [data-mna]').forEach(b=>b.classList.toggle('active',b.dataset.mna==='watchlist'));const list=watched(),a=assetsList();const rows=list.map(s=>{const x=a.find(q=>String(q.k||'').toUpperCase()===s);return '<div class="mova-watch-account-row"><div><b>'+s+'</b><small>'+String(x&&x.n||'Watched market')+'</small></div><button type="button" class="mova-watch-account-open" data-watch-open="'+s+'">Open</button></div>'}).join('');c.innerHTML='<span class="mna-kicker">WATCH LIST</span><h1>Your Watch List</h1><p class="mna-copy">Markets currently marked as Watching in MOVA.</p><div class="mova-watch-account-list">'+(rows||'<div class="mova-watch-empty">You are not watching any markets right now.</div>')+'</div>';c.querySelectorAll('[data-watch-open]').forEach(b=>b.onclick=()=>{const s=b.dataset.watchOpen;try{movaNACloseWorkspace()}catch(e){};try{if(typeof openAsset==='function')openAsset(s);else openCompanyResearch(s)}catch(e){}})}
-  function refresh(force=false){seed();const sig=watched().slice().sort().join('|');if(force||sig!==lastSig){lastSig=sig;fill();if(document.querySelector('#movaNativeAccount [data-mna="watchlist"].active'))render()}else fill();nav()}
-  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;const t=(b.textContent||'').trim();if(/Watching|Add to Watchlist|Remove from Watchlist/i.test(t)){setTimeout(syncFromButton,180);setTimeout(syncFromButton,500)}},true);
+  function render(){const c=document.getElementById('mnaCanvas');if(!c)return;document.querySelectorAll('#movaNativeAccount [data-mna]').forEach(b=>b.classList.toggle('active',b.dataset.mna==='watchlist'));const list=watched(),a=assetsList(),rows=list.map(s=>{const x=a.find(q=>String(q.k||'').toUpperCase()===s);return '<div class="mova-watch-account-row"><div><b>'+s+'</b><small>'+String(x&&x.n||'Watched market')+'</small></div><button type="button" class="mova-watch-account-open" data-watch-open="'+s+'">Open</button></div>'}).join('');c.innerHTML='<span class="mna-kicker">WATCH LIST</span><h1>Your Watch List</h1><p class="mna-copy">Markets currently marked as Watching in MOVA.</p><div class="mova-watch-account-list">'+(rows||'<div class="mova-watch-empty">You are not watching any markets right now.</div>')+'</div>';c.querySelectorAll('[data-watch-open]').forEach(b=>b.onclick=()=>{const s=b.dataset.watchOpen;try{movaNACloseWorkspace()}catch(e){};try{if(typeof openAsset==='function')openAsset(s);else openCompanyResearch(s)}catch(e){}})}
+  function tickerRoot(){const b=[...document.querySelectorAll('button')].find(x=>/^Watchlist$/i.test((x.textContent||'').trim())&&x.offsetParent!==null);if(!b)return null;let best=b.parentElement;for(let p=b.parentElement,i=0;p&&p!==document.body&&i<7;p=p.parentElement,i++){const r=p.getBoundingClientRect(),t=(p.innerText||'');if(/Trending/i.test(t)&&/Watchlist/i.test(t)&&r.height>35&&r.height<220&&r.width>window.innerWidth*.55)best=p}return {root:best,button:b}}
+  function cardSymbol(el){const t=' '+String(el.innerText||'').toUpperCase().replace(/[^A-Z0-9.\-$% ]/g,' ')+' ';const known=assetsList().map(a=>String(a.k||'').toUpperCase()).filter(Boolean);return known.find(s=>t.includes(' '+s+' '))||''}
+  function syncTopTicker(){const hit=tickerRoot();if(!hit)return;const {root,button}=hit,list=watched(),active=button.classList.contains('active')||button.getAttribute('aria-selected')==='true'||button.getAttribute('aria-pressed')==='true';root.querySelectorAll('[data-mova-watch-hidden="1"]').forEach(el=>{el.style.display=el.dataset.movaWatchPrevDisplay||'';delete el.dataset.movaWatchHidden;delete el.dataset.movaWatchPrevDisplay});if(!active)return;const candidates=[...root.querySelectorAll('div,button,a')].filter(el=>{if(el===button)return false;const r=el.getBoundingClientRect(),t=el.innerText||'';if(!/\$\s*[0-9]/.test(t)||r.height<28||r.height>110||r.width<70||r.width>420)return false;const childPrice=[...el.children].some(c=>/\$\s*[0-9]/.test(c.innerText||''));return !childPrice});candidates.forEach(el=>{const s=cardSymbol(el),show=s&&list.includes(s);if(!show){el.dataset.movaWatchPrevDisplay=el.style.display||'';el.dataset.movaWatchHidden='1';el.style.display='none'}});const status=[...root.querySelectorAll('span,small,div')].find(el=>/^\s*\d+\s+saved\b/i.test((el.textContent||'').trim()));if(status)status.textContent=list.length+' saved · your actual Watchlist'}
+  function refresh(force=false){seed();const sig=watched().slice().sort().join('|');if(force||sig!==lastSig){lastSig=sig;fill();if(document.querySelector('#movaNativeAccount [data-mna="watchlist"].active'))render()}else fill();nav();syncTopTicker()}
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button');if(!b)return;const t=(b.textContent||'').trim();if(/Watching|Add to Watchlist|Remove from Watchlist/i.test(t)){setTimeout(syncFromButton,180);setTimeout(syncFromButton,500)}if(/^Watchlist$|^Trending$/i.test(t)){setTimeout(()=>syncTopTicker(),40);setTimeout(()=>syncTopTicker(),180);setTimeout(()=>syncTopTicker(),500)}},true);
   window.addEventListener('storage',e=>{if(e.key===CANON_KEY)refresh(true)});
   const mo=new MutationObserver(()=>refresh(false));
   function boot(){try{localStorage.removeItem(LEGACY_KEY)}catch(e){};seed();refresh(true);mo.observe(document.body,{subtree:true,childList:true});[300,800,1600,3000].forEach(ms=>setTimeout(()=>refresh(true),ms))}
@@ -65,4 +33,4 @@ const runtime=`<script id="mova-watchlist-sourcefix-v5">(function(){
 })();</script>`;
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA watchlist sourcefix v5: canonical Watch List prevents stale removed items returning.');
+console.log('MOVA watchlist sourcefix v6: top Watchlist ticker now follows canonical Watch List.');
