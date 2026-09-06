@@ -40,57 +40,159 @@ replaceBlock(
   'bootstrapWatch'
 );
 
-// Make Watchlist filtering independent of the ticker card's exact internal markup.
-// A market card is recognised by one visible price token plus normal card dimensions.
+// The Watchlist tab is its own renderer. It must not merely filter whichever
+// Trending cards happen to be in the native ticker at that moment.
 replaceBlock(
   '  function syncTopTicker(){',
   '\n  function syncCompanyButton',
-`  function syncTopTicker(){
+`  var watchTickerSig='',watchTickerSeq=0,watchTickerLastFetch=0;
+
+  function nativeTickerCards(hit){
+    if(!hit||!hit.root)return [];
+    var price=/[$£€]\\s*[0-9][0-9,]*(?:\\.[0-9]+)?/g;
+    return Array.from(hit.root.querySelectorAll('div,button,a,li')).filter(function(el){
+      if(el===hit.button||el===hit.trending||el.closest('[data-mova-canonical-watch-strip="1"]'))return false;
+      var r=el.getBoundingClientRect(),t=String(el.innerText||'').trim(),matches=t.match(price)||[];
+      if(matches.length!==1||r.width<60||r.width>540||r.height<24||r.height>155)return false;
+      return !Array.from(el.children).some(function(c){return ((String(c.innerText||'').match(price)||[]).length===1)&&c.getBoundingClientRect().width>=55});
+    });
+  }
+
+  function hideNativeTickerTrack(hit){
+    var cards=nativeTickerCards(hit);if(!cards.length)return null;
+    var counts=new Map();
+    cards.forEach(function(card){var p=card.parentElement;if(p&&hit.root.contains(p))counts.set(p,(counts.get(p)||0)+1)});
+    var track=Array.from(counts.entries()).sort(function(a,b){return b[1]-a[1]})[0];
+    track=track&&track[0];
+    if(!track||track===hit.root)return null;
+    if(!track.dataset.movaWatchPrevDisplay)track.dataset.movaWatchPrevDisplay=track.style.display||'';
+    track.dataset.movaNativeWatchTrack='1';
+    track.style.display='none';
+    return track;
+  }
+
+  function restoreNativeTickerTrack(hit){
+    if(!hit||!hit.root)return;
+    hit.root.querySelectorAll('[data-mova-native-watch-track="1"]').forEach(function(track){
+      track.style.display=track.dataset.movaWatchPrevDisplay||'';
+      delete track.dataset.movaWatchPrevDisplay;
+      delete track.dataset.movaNativeWatchTrack;
+    });
+  }
+
+  function ensureWatchStrip(hit){
+    var strip=hit.root.querySelector('[data-mova-canonical-watch-strip="1"]');
+    if(strip)return strip;
+    strip=document.createElement('div');
+    strip.className='mova-canonical-watch-strip';
+    strip.dataset.movaCanonicalWatchStrip='1';
+    var track=hit.root.querySelector('[data-mova-native-watch-track="1"]');
+    if(track&&track.parentNode)track.parentNode.insertBefore(strip,track.nextSibling);
+    else hit.root.appendChild(strip);
+    return strip;
+  }
+
+  function openWatchTicker(symbol){
+    try{
+      if(typeof openAsset==='function')openAsset(symbol);
+      else if(typeof openCompanyResearch==='function')openCompanyResearch(symbol);
+    }catch(e){}
+  }
+
+  function staticAsset(symbol){
+    return assetsList().find(function(a){return sym(a.k)===symbol})||null;
+  }
+
+  function priceText(q,a){
+    if(q&&q.priceText)return String(q.priceText);
+    if(q&&Number.isFinite(Number(q.priceNative)))return '$'+Number(q.priceNative).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+    return a&&a.p?String(a.p):'—';
+  }
+
+  function moveInfo(q,a){
+    var pct=q?Number(q.changePct):NaN;
+    if(Number.isFinite(pct))return {text:(pct>0?'+':'')+pct.toFixed(2)+'%',cls:pct>0?'up':pct<0?'down':'flat'};
+    var text=a&&a.m?String(a.m):'—',n=Number.parseFloat(text.replace('%',''));
+    return {text:text,cls:Number.isFinite(n)?(n>0?'up':n<0?'down':'flat'):(a&&a.c||'flat')};
+  }
+
+  function renderWatchCards(strip,list,quotes){
+    var bySymbol=new Map((quotes||[]).map(function(q){return [sym(q.ticker||q.symbol),q]}));
+    strip.innerHTML=list.map(function(s){
+      var q=bySymbol.get(s)||null,a=staticAsset(s),move=moveInfo(q,a),name=(q&&q.name)||(a&&a.n)||s;
+      return '<button type="button" class="mova-canonical-watch-card" data-mova-watch-open="'+esc(s)+'">'+
+        '<span class="mova-canonical-watch-symbol">'+esc(s)+'</span>'+ 
+        '<span class="mova-canonical-watch-price">'+esc(priceText(q,a))+' <b class="'+esc(move.cls)+'">'+esc(move.text)+'</b></span>'+ 
+        '<span class="mova-canonical-watch-name">'+esc(name)+'</span>'+ 
+      '</button>';
+    }).join('');
+    strip.querySelectorAll('[data-mova-watch-open]').forEach(function(btn){
+      btn.onclick=function(){openWatchTicker(sym(btn.dataset.movaWatchOpen))};
+    });
+  }
+
+  function loadWatchTicker(hit,list,strip){
+    var sig=list.join('|'),now=Date.now();
+    if(sig===watchTickerSig&&strip.dataset.movaLoaded==='1'&&now-watchTickerLastFetch<45000)return;
+    watchTickerSig=sig;watchTickerLastFetch=now;
+    renderWatchCards(strip,list,[]);
+    strip.dataset.movaLoaded='0';
+    var seq=++watchTickerSeq;
+    fetch('/api/market?symbols='+encodeURIComponent(list.join(','))+'&ts='+now,{cache:'no-store'})
+      .then(function(r){if(!r.ok)throw new Error('market');return r.json()})
+      .then(function(d){
+        if(seq!==watchTickerSeq)return;
+        var current=watched();
+        if(current.join('|')!==sig)return;
+        renderWatchCards(strip,current,Array.isArray(d.assets)?d.assets:[]);
+        strip.dataset.movaLoaded='1';
+      })
+      .catch(function(){
+        if(seq===watchTickerSeq)strip.dataset.movaLoaded='1';
+      });
+  }
+
+  function syncTopTicker(){
     var hit=tickerRoot();if(!hit)return;
-    var list=watched(),active=watchMode(hit),empty=hit.root.querySelector('[data-mova-watch-empty="1"]');
+    var list=watched(),active=watchMode(hit);
+    var strip=hit.root.querySelector('[data-mova-canonical-watch-strip="1"]');
+    var empty=hit.root.querySelector('[data-mova-watch-empty="1"]');
 
-    hit.root.querySelectorAll('[data-mova-watch-hidden="1"]').forEach(function(el){
-      el.style.display=el.dataset.movaWatchPrevDisplay||'';
-      delete el.dataset.movaWatchHidden;
-      delete el.dataset.movaWatchPrevDisplay;
+    var status=Array.from(hit.root.querySelectorAll('span,small,div')).find(function(el){
+      return /^\\s*\\d+\\s+saved\\b/i.test((el.textContent||'').trim());
     });
-
-    if(!active){if(empty)empty.remove();return}
-
-    var priceOne=/[$£€]\\s*[0-9][0-9,]*(?:\\.[0-9]+)?/g;
-    Array.from(hit.root.querySelectorAll('div,button,a,li')).forEach(function(el){
-      if(el===hit.button||el===hit.trending||el===empty)return;
-      var r=el.getBoundingClientRect(),t=String(el.innerText||'').trim();
-      if(r.width<65||r.width>520||r.height<26||r.height>150)return;
-      var prices=t.match(priceOne)||[];
-      if(prices.length!==1)return;
-      var s=cardSymbol(el);
-      var shouldHide=!list.length||(s&&!list.includes(s));
-      if(shouldHide){
-        el.dataset.movaWatchPrevDisplay=el.style.display||'';
-        el.dataset.movaWatchHidden='1';
-        el.style.display='none';
-      }
-    });
-
-    var status=Array.from(hit.root.querySelectorAll('span,small,div')).find(function(el){return /^\\s*\\d+\\s+saved\\b/i.test((el.textContent||'').trim())});
     if(status)status.textContent=list.length+' saved · your actual Watchlist';
 
+    if(!active){
+      restoreNativeTickerTrack(hit);
+      if(strip)strip.remove();
+      if(empty)empty.remove();
+      return;
+    }
+
+    hideNativeTickerTrack(hit);
+
     if(!list.length){
+      if(strip)strip.remove();
       if(!empty){
         empty=document.createElement('div');
         empty.dataset.movaWatchEmpty='1';
         empty.textContent='No saved markets';
-        empty.style.cssText='padding:10px 14px;color:#8aa0af;font-size:11px;font-weight:800;white-space:nowrap';
+        empty.style.cssText='padding:12px 14px;color:#8aa0af;font-size:11px;font-weight:800;white-space:nowrap';
         hit.root.appendChild(empty);
       }
-    }else if(empty)empty.remove();
+      watchTickerSig='';watchTickerSeq++;
+      return;
+    }
+
+    if(empty)empty.remove();
+    strip=ensureWatchStrip(hit);
+    loadWatchTicker(hit,list,strip);
   }`,
   'syncTopTicker'
 );
 
 const css=`<style id="mova-preview-state-contrast-v4">
-/* Keep the live market ticker intentionally dark in Light theme. */
 body.mova-light-theme .ticker-shell,
 body.mova-light-theme .ticker{
   background:#020810!important;
@@ -127,7 +229,66 @@ body.mova-light-theme .ticker-shell .down,
 body.mova-light-theme .ticker .down{color:#ff657a!important}
 body.mova-light-theme [data-mova-watch-empty="1"]{color:#8fa5b4!important}
 
-/* Runtime-marked dark cards keep dark-theme contrast while the surrounding page is light. */
+.mova-canonical-watch-strip{
+  display:flex!important;
+  gap:8px!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overscroll-behavior-x:contain!important;
+  scrollbar-width:none!important;
+  padding:8px 0 7px!important;
+  box-sizing:border-box!important;
+  align-items:stretch!important;
+}
+.mova-canonical-watch-strip::-webkit-scrollbar{display:none!important}
+.mova-canonical-watch-card{
+  flex:0 0 154px!important;
+  min-width:154px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:3px!important;
+  padding:9px 12px!important;
+  border:1px solid #17303d!important;
+  border-radius:14px!important;
+  background:#07131c!important;
+  color:#eef6fb!important;
+  text-align:left!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+}
+.mova-canonical-watch-card:hover,
+.mova-canonical-watch-card:focus{border-color:#2f6a86!important;outline:none!important}
+.mova-canonical-watch-symbol{
+  color:#718999!important;
+  font-size:8px!important;
+  line-height:1.1!important;
+  font-weight:900!important;
+  letter-spacing:.12em!important;
+  text-transform:uppercase!important;
+}
+.mova-canonical-watch-price{
+  color:#eaf3f8!important;
+  font-size:13px!important;
+  line-height:1.2!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+}
+.mova-canonical-watch-price b{font-size:10px!important;margin-left:4px!important}
+.mova-canonical-watch-name{
+  max-width:100%!important;
+  color:#718999!important;
+  font-size:8px!important;
+  line-height:1.2!important;
+  font-weight:700!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.mova-canonical-watch-card .up{color:#42e778!important}
+.mova-canonical-watch-card .down{color:#ff657a!important}
+.mova-canonical-watch-card .flat{color:#8fa5b4!important}
+
 body.mova-light-theme .mova-dark-contrast-surface{
   color:#dce9f0!important;
   border-color:#17303d!important;
@@ -187,4 +348,4 @@ const runtime=`<script id="mova-preview-dark-surface-contrast-v4">(function(){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA preview v4 applied: canonical Watch List ticker sync + dark-surface Light-theme contrast.');
+console.log('MOVA preview v4 applied: canonical Watch List ticker renderer + dark-surface Light-theme contrast.');
