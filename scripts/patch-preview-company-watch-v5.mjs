@@ -6,6 +6,81 @@ let html=readFileSync(file,'utf8');
 if(!html.includes('mova-preview-followup-fixes-v3')) throw new Error('Company watch v5: canonical Watch List runtime missing');
 if(!html.includes('companyResearchView')) throw new Error('Company watch v5: company research view hook missing');
 
+// Account-scope the authoritative v3 Watch List controller after v4 has installed
+// its ticker renderer. The signed-in account email becomes the storage namespace.
+const scopeHelpers=`  var watchScopeSig='';
+  function watchScope(){
+    try{
+      var a=JSON.parse(localStorage.getItem('movaNativeAccountV2')||'null');
+      var s=JSON.parse(localStorage.getItem('movaNativeSessionV2')||'null');
+      var ae=String(a&&a.email||'').trim().toLowerCase(),se=String(s&&s.email||'').trim().toLowerCase();
+      if(ae&&se&&ae===se)return encodeURIComponent(ae);
+    }catch(e){}
+    return 'guest';
+  }
+  function watchKey(){return 'movaUnifiedWatchlistV3:'+watchScope()}
+  function watchInitKey(){return 'movaUnifiedWatchlistV3Init:'+watchScope()}
+`;
+
+const assetsNeedle=`  function assetsList(){try{return Array.isArray(assets)?assets:[]}catch(e){return[]}}
+`;
+if(!html.includes(assetsNeedle)) throw new Error('Company watch v5: v3 assetsList hook missing');
+html=html.replace(assetsNeedle,assetsNeedle+scopeHelpers);
+
+const readOld=`  function readCanonical(){try{var v=JSON.parse(localStorage.getItem(WATCH_KEY)||'null');return Array.isArray(v)?Array.from(new Set(v.map(sym).filter(Boolean))):null}catch(e){return null}}
+  function isInitialised(){try{return localStorage.getItem(INIT_KEY)==='1'}catch(e){return false}}
+`;
+const readNew=`  function readCanonical(){try{var v=JSON.parse(localStorage.getItem(watchKey())||'null');return Array.isArray(v)?Array.from(new Set(v.map(sym).filter(Boolean))):null}catch(e){return null}}
+  function isInitialised(){try{return localStorage.getItem(watchInitKey())==='1'}catch(e){return false}}
+`;
+if(!html.includes(readOld)) throw new Error('Company watch v5: v3 canonical read hooks missing');
+html=html.replace(readOld,readNew);
+
+const writeOld=`  function writeWatch(list){
+    var clean=Array.from(new Set((list||[]).map(sym).filter(Boolean)));
+    try{localStorage.setItem(WATCH_KEY,JSON.stringify(clean));localStorage.setItem(LEGACY_KEY,JSON.stringify(clean));localStorage.setItem(INIT_KEY,'1')}catch(e){}
+    mirrorNative(clean);return clean;
+  }
+`;
+const writeNew=`  function writeWatch(list){
+    var clean=Array.from(new Set((list||[]).map(sym).filter(Boolean)));
+    try{localStorage.setItem(watchKey(),JSON.stringify(clean));localStorage.setItem(watchInitKey(),'1')}catch(e){}
+    mirrorNative(clean);return clean;
+  }
+`;
+if(!html.includes(writeOld)) throw new Error('Company watch v5: v3 canonical write hook missing');
+html=html.replace(writeOld,writeNew);
+
+const bootOld=`  function bootstrapWatch(){
+    var c=readCanonical();
+    if(c!==null)return writeWatch(c);
+    try{var legacy=JSON.parse(localStorage.getItem(LEGACY_KEY)||'null');if(Array.isArray(legacy))return writeWatch(legacy)}catch(e){}
+    return writeWatch([]);
+  }
+`;
+const bootNew=`  function bootstrapWatch(){
+    var c=readCanonical();
+    if(c!==null)return writeWatch(c);
+    return writeWatch([]);
+  }
+`;
+if(!html.includes(bootOld)) throw new Error('Company watch v5: v4 bootstrap hook missing');
+html=html.replace(bootOld,bootNew);
+
+const refreshOld=`  function refreshWatch(force){var list=watched();mirrorNative(list);var sig=list.slice().sort().join('|');if(force||sig!==watchSig){watchSig=sig;var b=document.querySelector('#movaNativeAccount [data-mna="watchlist"]');if(b&&b.classList.contains('active'))renderAccountWatch()}ensureAccountWatch();fillHomeWatch();syncTopTicker();syncCompanyButton()}
+`;
+const refreshNew=`  function refreshWatch(force){var scope=watchScope();if(scope!==watchScopeSig){watchScopeSig=scope;watchSig='';force=true}var list=watched();mirrorNative(list);var sig=list.slice().sort().join('|');if(force||sig!==watchSig){watchSig=sig;var b=document.querySelector('#movaNativeAccount [data-mna="watchlist"]');if(b&&b.classList.contains('active'))renderAccountWatch()}ensureAccountWatch();fillHomeWatch();syncTopTicker();syncCompanyButton()}
+`;
+if(!html.includes(refreshOld)) throw new Error('Company watch v5: v3 refresh hook missing');
+html=html.replace(refreshOld,refreshNew);
+
+const storageOld=`  window.addEventListener('storage',function(e){if(e.key===WATCH_KEY)refreshWatch(true)});
+`;
+const storageNew=`  window.addEventListener('storage',function(e){if(e.key===watchKey()||e.key==='movaNativeSessionV2'||e.key==='movaNativeAccountV2'){watchSig='';refreshWatch(true)}});
+`;
+if(!html.includes(storageOld)) throw new Error('Company watch v5: v3 storage listener missing');
+html=html.replace(storageOld,storageNew);
+
 const css=`<style id="mova-preview-company-watch-v5-style">
 #companyResearchView button[data-mova-canonical-watch="0"]{
   background:#0b1821!important;
@@ -32,22 +107,26 @@ body.mova-light-theme #companyResearchView button[data-mova-canonical-watch="1"]
 </style>`;
 
 const runtime=`<script id="mova-preview-company-watch-v5">(function(){
-  var WATCH_KEY='movaUnifiedWatchlistV2';
-  var LEGACY_KEY='movaUnifiedWatchlistV1';
-  var INIT_KEY='movaUnifiedWatchlistV2Initialised';
   var queued=false;
 
   function sym(v){v=String(v||'').trim().toUpperCase();return /^[A-Z0-9.\\-]{1,16}$/.test(v)?v:''}
+  function watchScope(){
+    try{
+      var a=JSON.parse(localStorage.getItem('movaNativeAccountV2')||'null');
+      var s=JSON.parse(localStorage.getItem('movaNativeSessionV2')||'null');
+      var ae=String(a&&a.email||'').trim().toLowerCase(),se=String(s&&s.email||'').trim().toLowerCase();
+      if(ae&&se&&ae===se)return encodeURIComponent(ae);
+    }catch(e){}
+    return 'guest';
+  }
+  function watchKey(){return 'movaUnifiedWatchlistV3:'+watchScope()}
+  function watchInitKey(){return 'movaUnifiedWatchlistV3Init:'+watchScope()}
   function readWatch(){
-    try{var v=JSON.parse(localStorage.getItem(WATCH_KEY)||'[]');return Array.isArray(v)?Array.from(new Set(v.map(sym).filter(Boolean))):[]}catch(e){return[]}
+    try{var v=JSON.parse(localStorage.getItem(watchKey())||'[]');return Array.isArray(v)?Array.from(new Set(v.map(sym).filter(Boolean))):[]}catch(e){return[]}
   }
   function writeWatch(list){
     var clean=Array.from(new Set((list||[]).map(sym).filter(Boolean)));
-    try{
-      localStorage.setItem(WATCH_KEY,JSON.stringify(clean));
-      localStorage.setItem(LEGACY_KEY,JSON.stringify(clean));
-      localStorage.setItem(INIT_KEY,'1');
-    }catch(e){}
+    try{localStorage.setItem(watchKey(),JSON.stringify(clean));localStorage.setItem(watchInitKey(),'1')}catch(e){}
     try{if(typeof window.movaWatchlistRefresh==='function')window.movaWatchlistRefresh()}catch(e){}
     return clean;
   }
@@ -82,8 +161,6 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
     writeWatch(list);queue();
   }
 
-  // Own every legacy company-page watch label (Watch / Add to Watchlist / starred variants)
-  // so the canonical Watch List is the only source of truth.
   document.addEventListener('click',function(e){
     var btn=e.target.closest&&e.target.closest('button');if(!btn)return;
     var view=companyView();if(!view||!view.classList.contains('open')||!view.contains(btn))return;
@@ -93,7 +170,7 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
     toggle(ticker);
   },true);
 
-  window.addEventListener('storage',function(e){if(e.key===WATCH_KEY)queue()});
+  window.addEventListener('storage',function(e){if(e.key===watchKey()||e.key==='movaNativeSessionV2'||e.key==='movaNativeAccountV2')queue()});
   document.addEventListener('mova:watchlist-changed',queue);
   var mo=new MutationObserver(queue);
   function boot(){
@@ -107,4 +184,4 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA preview company watch v5 applied: unsaved company buttons now say Add to Watchlist consistently.');
+console.log('MOVA preview company watch v5 applied: account-scoped Watch Lists + consistent Add to Watchlist labels.');
