@@ -32,6 +32,10 @@ const css=`<style id="mova-preview-watch-native-v9-style">
 }
 #tickerTrack.mova-native-watch-empty{display:none!important}
 #tickerTrack.mova-native-watch-active:hover{animation-play-state:paused!important}
+#tickerTrack.mova-native-watch-active.mova-native-watch-single{
+  animation:none!important;
+  transform:none!important;
+}
 .mova-native-watch-half{
   display:flex!important;
   flex:0 0 auto!important;
@@ -60,7 +64,6 @@ const css=`<style id="mova-preview-watch-native-v9-style">
 
 const runtime=`<script id="mova-preview-watch-native-v9">(function(){
   var MODE='movaTickerModeV1';
-  var savedNativeHtml=null;
   var queued=false;
 
   function sym(v){
@@ -137,38 +140,46 @@ const runtime=`<script id="mova-preview-watch-native-v9">(function(){
 
   function restoreNative(track){
     if(!track)return;
-    if(savedNativeHtml!==null){
-      track.innerHTML=savedNativeHtml;
-      savedNativeHtml=null;
-    }
-    track.classList.remove('mova-native-watch-active','mova-native-watch-empty');
+
+    // Never restore a cached copy of Trending. setTickerMode('trending') already
+    // rebuilds #tickerTrack; if Watchlist markup is somehow still present,
+    // ask the native ticker renderer to rebuild it now.
+    track.classList.remove('mova-native-watch-active','mova-native-watch-empty','mova-native-watch-single');
     track.removeAttribute('data-mova-native-watch-sig');
     track.style.removeProperty('--mova-watch-native-duration');
 
-    // Undo the canonical renderer's temporary native-track hide when present.
     if(Object.prototype.hasOwnProperty.call(track.dataset,'movaWatchPrevDisplay')){
       track.style.display=track.dataset.movaWatchPrevDisplay||'';
       delete track.dataset.movaWatchPrevDisplay;
       delete track.dataset.movaNativeWatchTrack;
     }
+
+    if(track.querySelector('.mova-canonical-watch-card')){
+      try{
+        if(typeof window.tickerBuild==='function')window.tickerBuild();
+        else if(typeof tickerBuild==='function')tickerBuild();
+      }catch(e){}
+    }
   }
 
   function renderWatch(track,cards){
-    var viewport=Math.max(window.innerWidth,track.parentElement?track.parentElement.getBoundingClientRect().width:0,900);
-    var perPass=Math.max(1,Math.ceil((viewport+220)/Math.max(162,cards.length*162)));
     var base=cards.map(function(card){return card.outerHTML}).join('');
-    var half='';
-    for(var i=0;i<perPass;i++)half+=base;
+    var single=cards.length===1;
+    var sig=cards.map(function(card){return sym(card.dataset.movaWatchOpen)+'|'+card.innerHTML}).join('~')+'|'+(single?'single':'loop');
 
-    var sig=cards.map(function(card){return sym(card.dataset.movaWatchOpen)+'|'+card.innerHTML}).join('~')+'|'+perPass;
     if(track.dataset.movaNativeWatchSig!==sig){
-      track.innerHTML='<div class="mova-native-watch-half">'+half+'</div><div class="mova-native-watch-half" aria-hidden="true">'+half+'</div>';
+      if(single){
+        track.innerHTML='<div class="mova-native-watch-half">'+base+'</div>';
+      }else{
+        track.innerHTML='<div class="mova-native-watch-half">'+base+'</div><div class="mova-native-watch-half" aria-hidden="true">'+base+'</div>';
+      }
       track.dataset.movaNativeWatchSig=sig;
       wire(track);
     }
 
     track.classList.remove('mova-native-watch-empty');
     track.classList.add('mova-native-watch-active');
+    track.classList.toggle('mova-native-watch-single',single);
     track.style.setProperty('--mova-watch-native-duration',speedDuration());
   }
 
@@ -183,13 +194,11 @@ const runtime=`<script id="mova-preview-watch-native-v9">(function(){
       return;
     }
 
-    if(savedNativeHtml===null)savedNativeHtml=track.innerHTML;
-
     var cards=sourceCards();
     var empty=document.querySelector('[data-mova-watch-empty="1"]');
 
     if(!cards.length){
-      track.classList.remove('mova-native-watch-active');
+      track.classList.remove('mova-native-watch-active','mova-native-watch-single');
       track.classList.add('mova-native-watch-empty');
       return;
     }
@@ -217,4 +226,4 @@ const runtime=`<script id="mova-preview-watch-native-v9">(function(){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA Watchlist native v9 applied: native ticker motion, direct clicks, canonical saved-data source.');
+console.log('MOVA Watchlist native v9 applied: live Trending restore, single-item Watchlist guard, native scrolling and direct clicks.');
