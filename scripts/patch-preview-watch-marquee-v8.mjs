@@ -37,7 +37,7 @@ const css=`<style id="mova-preview-watch-marquee-v8-style">
   max-width:none!important;
   will-change:transform!important;
   transform:translate3d(0,0,0);
-  animation:movaCanonicalWatchV8 52s linear infinite!important;
+  animation:movaCanonicalWatchV8 var(--mova-watch-duration,24s) linear infinite!important;
 }
 .mova-canonical-watch-group{
   display:flex!important;
@@ -51,13 +51,12 @@ const css=`<style id="mova-preview-watch-marquee-v8-style">
   padding-right:8px!important;
   box-sizing:border-box!important;
 }
-.mova-canonical-watch-strip:hover .mova-canonical-watch-track,
-.mova-canonical-watch-strip:focus-within .mova-canonical-watch-track{animation-play-state:paused!important}
 .mova-canonical-watch-card{flex:0 0 154px!important;min-width:154px!important;max-width:154px!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:none!important}
 @keyframes movaCanonicalWatchV8{
-  from{transform:translateX(0)}
-  to{transform:translateX(-50%)}
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(var(--mova-watch-shift,-500px),0,0)}
 }
+@media(prefers-reduced-motion:reduce){.mova-canonical-watch-track{animation:none!important;transform:none!important}}
 </style>`;
 
 const runtime=`<script id="mova-preview-watch-marquee-v8">(function(){
@@ -161,10 +160,15 @@ function suppressNative(root,c,strip,empty){
     requestAnimationFrame(function(){
       if(!strip.isConnected||!track.isConnected||!group.isConnected)return;
       var width=Math.ceil(group.getBoundingClientRect().width);if(width<1)return;
-      while(track.children.length>2)track.lastElementChild.remove();
-      if(track.children.length<2)track.appendChild(cloneGroup(group));
+      var viewport=Math.ceil(strip.getBoundingClientRect().width);
+      var copies=Math.max(2,Math.ceil((viewport+width)/width));
+      while(track.children.length>1)track.lastElementChild.remove();
+      for(var i=1;i<copies;i++)track.appendChild(cloneGroup(group));
       track.style.setProperty('--mova-watch-shift','-'+width+'px');
-      track.style.setProperty('--mova-watch-duration',Math.max(18,Math.min(44,width/32)).toFixed(1)+'s');
+      track.style.setProperty('--mova-watch-duration',Math.max(14,Math.min(32,width/28)).toFixed(1)+'s');
+      track.style.setProperty('animation-name','none','important');
+      void track.offsetWidth;
+      track.style.setProperty('animation-name','movaCanonicalWatchV8','important');
     });
   }
   function enhance(strip){
@@ -172,7 +176,6 @@ function suppressNative(root,c,strip,empty){
     if(track){
       track.style.setProperty('flex-wrap','nowrap','important');
       var groups=Array.from(track.children).filter(function(x){return x.classList&&x.classList.contains('mova-canonical-watch-group')});
-      while(groups.length>2){groups.pop().remove()}
       var g=groups[0];if(g)size(strip,track,g);return;
     }
     var cards=Array.from(strip.children).filter(function(el){return el.classList&&el.classList.contains('mova-canonical-watch-card')});
@@ -180,7 +183,7 @@ function suppressNative(root,c,strip,empty){
     var group=document.createElement('div');group.className='mova-canonical-watch-group';
     cards.forEach(function(b){b.onclick=null;group.appendChild(b)});
     track=document.createElement('div');track.className='mova-canonical-watch-track';
-    track.appendChild(group);track.appendChild(cloneGroup(group));
+    track.appendChild(group);
     strip.replaceChildren(track);size(strip,track,group);
   }
   function dedupe(root){
@@ -272,4 +275,4 @@ function suppressNative(root,c,strip,empty){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA Watchlist marquee v8 applied: one row, two internal groups, native tracks suppressed, cards clickable.');
+console.log('MOVA Watchlist marquee v8 applied: viewport-filling seamless loop, native tracks suppressed, cards clickable.');
