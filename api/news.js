@@ -1,4 +1,4 @@
-// MOVA News image resolver v4 — market news + company-specific top-10 search.
+// MOVA News image resolver v5 — faster market/company news with unique thumbnails.
 function norm(h){return String(h||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();}
 function unique(items){const seen=new Set();return items.filter(x=>{const n=norm(x.title||x.headline),key=n.split(" ").slice(0,13).join(" ");if(!key||seen.has(key))return false;seen.add(key);return true;});}
 function decodeXml(s){return String(s||"").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'");}
@@ -8,12 +8,34 @@ function htmlImage(s){const m=String(s||"").match(/<img[^>]+src=["']([^"']+)["']
 function stripHtml(s){return decodeXml(String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ")).trim();}
 function absolutize(url,base){try{return new URL(url,base).href}catch{return url||""}}
 function canonicalImage(url){try{const u=new URL(url);return (u.origin+u.pathname).toLowerCase()}catch{return String(url||"").split('?')[0].toLowerCase()}}
-function usableImage(url){if(!url)return false;const s=String(url).toLowerCase();return !(/logo|icon|avatar|sprite|pixel|tracking|favicon/.test(s));}
+function imageKeys(url){
+  if(!url)return [];
+  try{
+    const u=new URL(url),host=u.hostname.toLowerCase();
+    let path=u.pathname.toLowerCase()
+      .replace(/[-_/]\d{2,4}x\d{2,4}(?=[/._-]|$)/g,'')
+      .replace(/[-_]\d{2,4}w(?=[/._-]|$)/g,'')
+      .replace(/[-_]\d{2,4}h(?=[/._-]|$)/g,'');
+    const file=(path.split('/').pop()||'').replace(/[-_]\d{2,4}x\d{2,4}(?=\.)/g,'');
+    const keys=[host+path];
+    if(file.length>10)keys.push('file:'+file);
+    return keys;
+  }catch{return [canonicalImage(url)]}
+}
+function imageTaken(used,url){return imageKeys(url).some(k=>used.has(k))}
+function markImage(used,url){imageKeys(url).forEach(k=>used.add(k))}
+function usableImage(url){if(!url)return false;const s=String(url).toLowerCase();return !(/logo|icon|avatar|sprite|pixel|tracking|favicon|placeholder|default[-_]?image|brandmark|profile[-_]?image|site[-_]?logo|publisher[-_]?logo/.test(s));}
 function escQuery(v){return String(v||'').replace(/["<>]/g,' ').replace(/\s+/g,' ').trim();}
+async function timedFetch(url,options={},timeoutMs=2500){
+  const controller=typeof AbortController!=='undefined'?new AbortController():null;
+  const timer=controller?setTimeout(()=>controller.abort(),timeoutMs):null;
+  try{return await fetch(url,{...options,...(controller?{signal:controller.signal}:{})})}
+  finally{if(timer)clearTimeout(timer)}
+}
 async function resolveArticle(url){
   if(!url)return {url:"",image:""};
   try{
-    const r=await fetch(url,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0","Accept":"text/html,application/xhtml+xml"}});
+    const r=await timedFetch(url,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0 (compatible; MOVANews/1.0)","Accept":"text/html,application/xhtml+xml"}},2200);
     const finalUrl=r.url||url,type=r.headers.get("content-type")||"";
     if(!r.ok||!type.includes("text/html"))return {url:finalUrl,image:""};
     const html=await r.text();
@@ -52,7 +74,7 @@ async function bingQuery(q){
   const all=[];
   try{
     const u=new URL("https://www.bing.com/news/search");u.searchParams.set("q",q);u.searchParams.set("format","rss");u.searchParams.set("setlang","en-GB");u.searchParams.set("cc","GB");
-    const r=await fetch(u,{headers:{"User-Agent":"Mozilla/5.0"}});if(!r.ok)return all;
+    const r=await timedFetch(u,{headers:{"User-Agent":"Mozilla/5.0"}},2800);if(!r.ok)return all;
     const xml=await r.text(),blocks=xml.match(/<item>[\s\S]*?<\/item>/gi)||[];
     for(const b of blocks.slice(0,16)){
       const title=tag(b,"title"),url=tag(b,"link"),pub=tag(b,"pubDate"),desc=tag(b,"description");
@@ -74,15 +96,28 @@ function relevanceScore(item,symbol,name){
   score+=Math.max(0,4-age/86400000);
   return score;
 }
-async function finish(items,limit=20){
-  const picked=unique(items).slice(0,Math.max(limit,10));
+async function finish(items,limit=10){
+  const picked=unique(items).slice(0,limit);
+  const feedCounts=new Map();
+  picked.forEach(item=>{if(usableImage(item.image)){const k=canonicalImage(item.image);feedCounts.set(k,(feedCounts.get(k)||0)+1)}});
+
+  // Only articles missing an image, or sharing the exact same feed image, need
+  // a page lookup. Those lookups happen in parallel and have a short timeout.
+  const prepared=await Promise.all(picked.map(async item=>{
+    const feed=usableImage(item.image)?item.image:"";
+    const duplicateFeed=feed&&(feedCounts.get(canonicalImage(feed))||0)>1;
+    const resolved=(!feed||duplicateFeed)?await resolveArticle(item.url):{url:item.url,image:""};
+    return {item,feed,resolved};
+  }));
+
   const used=new Set(),output=[];
-  for(let i=0;i<picked.length&&output.length<limit;i++){
-    const item=picked[i];
-    let image=usableImage(item.image)?item.image:"",resolvedUrl=item.url;
-    if(!image||used.has(canonicalImage(image))){const r=await resolveArticle(item.url);resolvedUrl=r.url||item.url;if(r.image&&!used.has(canonicalImage(r.image)))image=r.image;}
-    if(!image||used.has(canonicalImage(image)))image=FALLBACK_IMAGES.find(x=>!used.has(canonicalImage(x)))||FALLBACK_IMAGES[i%FALLBACK_IMAGES.length];
-    used.add(canonicalImage(image));output.push({...item,url:resolvedUrl,image});
+  for(let i=0;i<prepared.length;i++){
+    const {item,feed,resolved}=prepared[i];
+    const candidates=[feed,resolved.image].filter(usableImage);
+    let image=candidates.find(x=>!imageTaken(used,x))||"";
+    if(!image)image=FALLBACK_IMAGES.find(x=>!imageTaken(used,x))||"";
+    if(image)markImage(used,image);
+    output.push({...item,url:resolved.url||item.url,image});
   }
   return output;
 }
@@ -90,7 +125,7 @@ async function bingMarketNews(){
   const queries=["US stock market","Nasdaq technology stocks","oil markets","gold markets","Federal Reserve markets"];
   const groups=await Promise.all(queries.map(bingQuery));
   const items=unique(groups.flat()).sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0));
-  return finish(items,20);
+  return finish(items,10);
 }
 async function bingCompanyNews(symbol,name){
   const s=escQuery(symbol).toUpperCase(),n=escQuery(name||symbol);
@@ -109,6 +144,6 @@ export default{async fetch(request){
   try{
     const u=new URL(request.url),symbol=escQuery(u.searchParams.get('symbol')).toUpperCase(),name=escQuery(u.searchParams.get('name'));
     const items=symbol?await bingCompanyNews(symbol,name||symbol):await bingMarketNews();
-    return Response.json({asOf:new Date().toISOString(),mode:symbol?'company':'market',symbol:symbol||null,name:name||null,items},{headers:{"Cache-Control":"public, s-maxage=120, stale-while-revalidate=300"}});
+    return Response.json({asOf:new Date().toISOString(),mode:symbol?'company':'market',symbol:symbol||null,name:name||null,items},{headers:{"Cache-Control":"public, s-maxage=180, stale-while-revalidate=900"}});
   }catch(e){return Response.json({error:e.message||"News request failed"},{status:500});}
 }};
