@@ -69,16 +69,37 @@ const runtime=`<script id="mova-preview-watch-marquee-v8">(function(){
   }
   function active(c){if(selected(c&&c.w))return true;if(selected(c&&c.t))return false;try{return sessionStorage.getItem(MODE)==='watchlist'}catch(e){return false}}
   function priceCount(el){return (String(el&&el.innerText||'').match(/[$£€]\\s*[0-9][0-9,]*(?:\\.[0-9]+)?/g)||[]).length}
-  function rootFor(c,strip){
-    if(!c||!c.w)return strip&&strip.parentElement;
-    var root=c.w.parentElement;
-    for(var p=c.w.parentElement,i=0;p&&p!==document.body&&i<10;p=p.parentElement,i++){
-      if(strip&&p.contains(strip)){root=p;break}
-      var r=p.getBoundingClientRect(),x=String(p.innerText||'');
-      if(r.width>=window.innerWidth*.7&&r.height>35&&r.height<300&&/Trending/i.test(x)&&/Watchlist/i.test(x))root=p;
+  function rootFor(c,anchor){
+  if(!c||!c.w)return anchor&&anchor.parentElement;
+
+  var fallback=c.w.parentElement;
+  var best=null;
+
+  for(
+    var p=c.w.parentElement,i=0;
+    p&&p!==document.body&&i<12;
+    p=p.parentElement,i++
+  ){
+    var r=p.getBoundingClientRect();
+    var x=String(p.innerText||'');
+
+    if(!/Trending/i.test(x)||!/Watchlist/i.test(x))continue;
+    if(anchor&&!p.contains(anchor))continue;
+    if(r.width<window.innerWidth*.65)continue;
+
+    fallback=p;
+
+    if(
+      priceCount(p)>0 &&
+      r.top<300 &&
+      r.height<360
+    ){
+      best=p;
     }
-    return root;
   }
+
+  return best||fallback;
+}
   function rememberHide(el){
     if(!el||el.dataset.movaWatchV8Hidden==='1')return;
     el.dataset.movaWatchV8Display=el.style.getPropertyValue('display')||'';
