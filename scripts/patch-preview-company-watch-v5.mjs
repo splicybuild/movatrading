@@ -59,7 +59,7 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
     return '';
   }
   function companyView(){return document.getElementById('companyResearchView')}
-  function isWatchText(text){return /^(?:[★☆]\\s*)?(?:Watching|Watch)$/i.test(text)||/^(?:Add to|Remove from) Watch\\s*List$/i.test(text)}
+  function isWatchText(text){return /^(?:[★☆]\\s*)?(?:(?:Watching|Watch)|(?:Add to|Remove from)\\s+Watch\\s*List)$/i.test(text)}
   function watchButton(){
     var view=companyView();if(!view||!view.classList.contains('open'))return null;
     return Array.from(view.querySelectorAll('button')).find(function(btn){return isWatchText(String(btn.textContent||'').trim())})||null;
@@ -82,8 +82,8 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
     writeWatch(list);queue();
   }
 
-  // Own the company-page watch button completely. This prevents the legacy/default
-  // company state from writing a different answer after the canonical list is updated.
+  // Own every legacy company-page watch label (Watch / Add to Watchlist / starred variants)
+  // so the canonical Watch List is the only source of truth.
   document.addEventListener('click',function(e){
     var btn=e.target.closest&&e.target.closest('button');if(!btn)return;
     var view=companyView();if(!view||!view.classList.contains('open')||!view.contains(btn))return;
@@ -107,4 +107,4 @@ const runtime=`<script id="mova-preview-company-watch-v5">(function(){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA preview company watch v5 applied: company button now follows canonical Watch List only.');
+console.log('MOVA preview company watch v5 applied: all company watch label variants now follow canonical Watch List only.');
