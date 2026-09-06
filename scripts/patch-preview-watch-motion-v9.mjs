@@ -6,14 +6,13 @@ let html=readFileSync(file,'utf8');
 if(!html.includes('mova-preview-watch-marquee-v8')) throw new Error('Watch motion v9: marquee v8 runtime missing');
 
 const css=`<style id="mova-preview-watch-motion-v9-style">
-/* v9 owns motion only; v8 still owns rendering, de-duping and clicks. */
-.mova-canonical-watch-track{
-  animation:none!important;
-}
+/* v9 owns Watchlist motion only; v8 still owns rendering, de-duping and clicks. */
+.mova-canonical-watch-track{animation:none!important;transform:none!important}
+.mova-canonical-watch-strip{scroll-behavior:auto!important}
 </style>`;
 
 const runtime=`<script id="mova-preview-watch-motion-v9">(function(){
-  var raf=0,last=0,offset=0,lastTrack=null,lastWidth=0;
+  var raf=0,last=0;
 
   function selected(b){
     if(!b)return false;
@@ -35,38 +34,35 @@ const runtime=`<script id="mova-preview-watch-motion-v9">(function(){
     try{return sessionStorage.getItem('movaTickerModeV1')==='watchlist'}catch(e){return false}
   }
 
+  function speedPxPerMs(){
+    var mode='normal';
+    try{mode=localStorage.getItem('movaTickerSpeedV1')||'normal'}catch(e){}
+    if(mode==='slow')return 0.028;
+    if(mode==='fast')return 0.075;
+    return 0.05;
+  }
+
   function frame(now){
     raf=requestAnimationFrame(frame);
 
-    var track=document.querySelector('[data-mova-canonical-watch-strip="1"] > .mova-canonical-watch-track');
-    if(!track||!track.isConnected||!watchActive()){
+    var strip=document.querySelector('[data-mova-canonical-watch-strip="1"]');
+    var track=strip&&strip.querySelector(':scope > .mova-canonical-watch-track');
+    var group=track&&track.querySelector(':scope > .mova-canonical-watch-group');
+
+    if(!strip||!track||!group||!watchActive()){
       last=now;
       return;
     }
-
-    var group=track.querySelector(':scope > .mova-canonical-watch-group');
-    if(!group){last=now;return}
 
     var width=Math.ceil(group.getBoundingClientRect().width);
     if(width<1){last=now;return}
-
-    if(track!==lastTrack||width!==lastWidth){
-      lastTrack=track;
-      lastWidth=width;
-      offset=0;
-      track.style.setProperty('transform','translate3d(0,0,0)','important');
-      last=now;
-      return;
-    }
 
     if(!last)last=now;
     var dt=Math.min(64,Math.max(0,now-last));
     last=now;
 
-    /* Roughly the same visual pace as the native Trending marquee. */
-    offset-=dt*0.035;
-    if(offset<=-width)offset+=width;
-    track.style.setProperty('transform','translate3d('+offset.toFixed(2)+'px,0,0)','important');
+    strip.scrollLeft += dt*speedPxPerMs();
+    if(strip.scrollLeft>=width)strip.scrollLeft-=width;
   }
 
   function start(){
@@ -81,4 +77,4 @@ const runtime=`<script id="mova-preview-watch-motion-v9">(function(){
 html=html.replace('</head>',css+'</head>');
 html=html.replace('</body>',runtime+'</body>');
 writeFileSync(file,html);
-console.log('MOVA Watchlist motion v9 applied: requestAnimationFrame-driven continuous ticker.');
+console.log('MOVA Watchlist motion v9 applied: scrollLeft-driven continuous ticker with saved speed preference.');
